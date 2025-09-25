@@ -1,0 +1,43 @@
+name: ci
+
+on:
+  pull_request:
+
+jobs:
+  build:
+    name: "${{ matrix.compiler }}-${{ matrix.build_type }}"
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        compiler: [gcc, clang]
+        build_type: [Debug, Release]
+    steps:
+      - name: checkout
+        uses: actions/checkout@v4
+
+      - name: install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang g++ libgtest-dev
+
+      - name: set up compiler
+        run: |
+          if [ "${{ matrix.compiler }}" = "clang" ]; then
+            echo "CC=clang" >> "$GITHUB_ENV"
+            echo "CXX=clang++" >> "$GITHUB_ENV"
+          else
+            echo "CC=gcc" >> "$GITHUB_ENV"
+            echo "CXX=g++" >> "$GITHUB_ENV"
+          fi
+
+      - name: configure
+        run: cmake -S . -B build/${{ matrix.compiler }}-${{ matrix.build_type }} -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
+
+      - name: build
+        run: cmake --build build/${{ matrix.compiler }}-${{ matrix.build_type }}
+
+      - name: test
+        run: ctest --test-dir build/${{ matrix.compiler }}-${{ matrix.build_type }}
+        env:
+          CTEST_OUTPUT_ON_FAILURE: 1

@@ -9,8 +9,15 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
+file(GLOB_RECURSE REIDBLAS_ILP64_SOURCES CONFIGURE_DEPENDS
+    src/blas/ilp64/*.cpp
+)
+list(SORT REIDBLAS_ILP64_SOURCES)
+
 add_library(reidblas SHARED
     src/reidblas.cpp
+    src/reidblas_blas_lp64_wrappers.cpp
+    ${REIDBLAS_ILP64_SOURCES}
 )
 set_target_properties(reidblas PROPERTIES
     OUTPUT_NAME "reidblas"
@@ -26,6 +33,7 @@ target_compile_definitions(reidblas PUBLIC REIDBLAS_USE_ILP64=0)
 
 add_library(reidblas_ilp64 SHARED
     src/reidblas.cpp
+    ${REIDBLAS_ILP64_SOURCES}
 )
 set_target_properties(reidblas_ilp64 PROPERTIES
     OUTPUT_NAME "reidblas_ilp64"

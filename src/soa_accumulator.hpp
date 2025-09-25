@@ -5,6 +5,8 @@
 #include <cstddef>
 #include <memory_resource>
 
+#include "compensated_arithmetic.hpp"
+
 namespace reidblas {
 
 // Struct-of-array accumulator with configurable compensation bins per entry.
@@ -67,12 +69,12 @@ public:
         }
 
         T carry = val;
-        two_sum_in_place(primary, carry);
+        two_sum(primary, carry);
         for (std::size_t bin = 0; bin < compensation_terms_; ++bin) {
             if (carry == T(0)) {
                 return;
             }
-            two_sum_in_place(compensation_block_[bin * size_ + i], carry);
+            two_sum(compensation_block_[bin * size_ + i], carry);
         }
         if (carry != T(0)) {
             primary += carry;
@@ -95,7 +97,7 @@ public:
             if (carry == T(0)) {
                 continue;
             }
-            two_sum_in_place(sum, carry);
+            two_sum(sum, carry);
         }
         if (carry != T(0)) {
             sum += carry;
@@ -141,14 +143,6 @@ private:
         if (compensation_block_) {
             std::fill_n(compensation_block_, compensation_terms_ * size_, T(0));
         }
-    }
-
-    static inline void two_sum_in_place(T &sum, T &value) {
-        const T temp = sum + value;
-        const T bp = temp - sum;
-        const T error = (sum - (temp - bp)) + (value - bp);
-        sum = temp;
-        value = error;
     }
 
     std::size_t size_ = 0;

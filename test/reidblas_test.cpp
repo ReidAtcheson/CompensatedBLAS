@@ -1,9 +1,13 @@
 #include <array>
+#include <cmath>
 #include <cstddef>
+#include <cstdint>
+#include <complex>
 #include <memory_resource>
 
 #include <gtest/gtest.h>
 
+#include "compensated_arithmetic.hpp"
 #include "reidblas.hpp"
 #include "soa_accumulator.hpp"
 
@@ -45,4 +49,28 @@ TEST(soa_accumulator_test, multiple_compensation_bins) {
         acc.accumulate(0, working[0], 1e-10);
     }
     EXPECT_NEAR(acc.round(0, working[0]), 1e-7, 1e-12);
+}
+
+TEST(compensated_arithmetic_test, two_prod_recovers_squared_value) {
+    const double value = std::nextafter(1.0, 2.0);  // fill mantissa with ones relative to 1.0
+    const auto [hi, lo] = reidblas::two_prod(value, value);
+    const long double expected = static_cast<long double>(value) * static_cast<long double>(value);
+    const long double reconstructed = static_cast<long double>(hi) + static_cast<long double>(lo);
+    EXPECT_EQ(reconstructed, expected);
+}
+
+TEST(compensated_arithmetic_test, two_prod_complex_recovers_squared_value) {
+    const double base = std::nextafter(1.0, 2.0);
+    const std::complex<double> value(base, -base);
+    const auto [hi, lo] = reidblas::two_prod(value, value);
+
+    const std::complex<long double> value_ld(static_cast<long double>(value.real()),
+                                             static_cast<long double>(value.imag()));
+    const std::complex<long double> expected = value_ld * value_ld;
+    const std::complex<long double> reconstructed(
+        static_cast<long double>(hi.real()) + static_cast<long double>(lo.real()),
+        static_cast<long double>(hi.imag()) + static_cast<long double>(lo.imag()));
+
+    EXPECT_EQ(reconstructed.real(), expected.real());
+    EXPECT_EQ(reconstructed.imag(), expected.imag());
 }

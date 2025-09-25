@@ -2,6 +2,20 @@
 BLAS implemented using tunable length compensation terms and optional deferred rounding
 
 
+## xBLAT Integration Harness
+
+The helper script `scripts/run_xblat_integration.sh` automates a clean configure
+and install to a temporary prefix before running the `libblas-test` xBLAT
+executables under `LD_PRELOAD`. Example:
+
+```
+./scripts/run_xblat_integration.sh --build-type RelWithDebInfo --timeout 120
+```
+
+Use `--keep-temp` to inspect the staged install and per-test logs, or
+`--search-dir` to point at alternative BLAS test directories.
+
+
 # References 
 
 Extended / Mixed-Precision BLAS (XBLAS)

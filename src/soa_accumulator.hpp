@@ -8,7 +8,7 @@
 namespace reidblas {
 
 // Struct-of-array accumulator with configurable compensation bins per entry.
-// Allocates storage from the supplied polymorphic memory resource.
+// Allocates storage for compensation terms from the supplied polymorphic memory resource.
 template <typename T>
 class soa_accumulator_t {
 public:
@@ -29,9 +29,7 @@ public:
         : size_(other.size_),
           compensation_terms_(other.compensation_terms_),
           resource_(other.resource_),
-          orig_(other.orig_),
           compensation_block_(other.compensation_block_),
-          compensation_ptrs_(other.compensation_ptrs_),
           owns_storage_(other.owns_storage_) {
         other.reset_pointers();
     }
@@ -44,9 +42,7 @@ public:
         size_ = other.size_;
         compensation_terms_ = other.compensation_terms_;
         resource_ = other.resource_;
-        orig_ = other.orig_;
         compensation_block_ = other.compensation_block_;
-        compensation_ptrs_ = other.compensation_ptrs_;
         owns_storage_ = other.owns_storage_;
         other.reset_pointers();
         return *this;
@@ -57,51 +53,44 @@ public:
     inline std::size_t size() const noexcept { return size_; }
     inline std::size_t compensation_terms() const noexcept { return compensation_terms_; }
 
-    inline T *data() noexcept { return orig_; }
-    inline const T *data() const noexcept { return orig_; }
-
-    inline T value(std::size_t i) const {
-        assert(i < size_);
-        return orig_[i];
-    }
-
     inline T compensation(std::size_t bin, std::size_t i) const {
         assert(bin < compensation_terms_);
         assert(i < size_);
-        return compensation_ptrs_[bin][i];
+        return compensation_block_[bin * size_ + i];
     }
 
-    inline void accumulate(std::size_t i, const T &val) {
+    inline void accumulate(std::size_t i, T &primary, const T &val) {
         assert(i < size_);
         if (compensation_terms_ == 0) {
-            orig_[i] += val;
+            primary += val;
             return;
         }
 
         T carry = val;
-        two_sum_in_place(orig_[i], carry);
+        two_sum_in_place(primary, carry);
         for (std::size_t bin = 0; bin < compensation_terms_; ++bin) {
             if (carry == T(0)) {
                 return;
             }
-            two_sum_in_place(compensation_ptrs_[bin][i], carry);
+            two_sum_in_place(compensation_block_[bin * size_ + i], carry);
         }
         if (carry != T(0)) {
-            orig_[i] += carry;
+            primary += carry;
         }
     }
 
-    inline T round(std::size_t i) {
+    inline T round(std::size_t i, T &primary) {
         assert(i < size_);
         if (compensation_terms_ == 0) {
-            return orig_[i];
+            return primary;
         }
 
-        T sum = orig_[i];
+        T sum = primary;
         T carry = T(0);
         for (std::size_t bin = 0; bin < compensation_terms_; ++bin) {
-            const T value = compensation_ptrs_[bin][i] + carry;
-            compensation_ptrs_[bin][i] = T(0);
+            const std::size_t offset = bin * size_ + i;
+            const T value = compensation_block_[offset] + carry;
+            compensation_block_[offset] = T(0);
             carry = value;
             if (carry == T(0)) {
                 continue;
@@ -111,7 +100,7 @@ public:
         if (carry != T(0)) {
             sum += carry;
         }
-        orig_[i] = sum;
+        primary = sum;
         return sum;
     }
 
@@ -121,25 +110,11 @@ private:
             resource_ = std::pmr::get_default_resource();
         }
 
-        const std::size_t orig_bytes = size_ * sizeof(T);
-        orig_ = size_ != 0 ? static_cast<T *>(resource_->allocate(orig_bytes, alignof(T))) : nullptr;
-
         const std::size_t compensation_count = compensation_terms_ * size_;
         const std::size_t compensation_bytes = compensation_count * sizeof(T);
         compensation_block_ = compensation_count != 0
                                   ? static_cast<T *>(resource_->allocate(compensation_bytes, alignof(T)))
                                   : nullptr;
-
-        const std::size_t ptr_bytes = compensation_terms_ * sizeof(T *);
-        compensation_ptrs_ = compensation_terms_ != 0
-                                 ? static_cast<T **>(resource_->allocate(ptr_bytes, alignof(T *)))
-                                 : nullptr;
-
-        if (compensation_ptrs_) {
-            for (std::size_t bin = 0; bin < compensation_terms_; ++bin) {
-                compensation_ptrs_[bin] = compensation_block_ + bin * size_;
-            }
-        }
         owns_storage_ = true;
     }
 
@@ -148,14 +123,8 @@ private:
             reset_pointers();
             return;
         }
-        if (compensation_ptrs_) {
-            resource_->deallocate(compensation_ptrs_, compensation_terms_ * sizeof(T *), alignof(T *));
-        }
         if (compensation_block_) {
             resource_->deallocate(compensation_block_, compensation_terms_ * size_ * sizeof(T), alignof(T));
-        }
-        if (orig_) {
-            resource_->deallocate(orig_, size_ * sizeof(T), alignof(T));
         }
         reset_pointers();
         resource_ = std::pmr::get_default_resource();
@@ -164,18 +133,13 @@ private:
     inline void reset_pointers() noexcept {
         size_ = 0;
         compensation_terms_ = 0;
-        orig_ = nullptr;
         compensation_block_ = nullptr;
-        compensation_ptrs_ = nullptr;
         owns_storage_ = false;
     }
 
     inline void zero_storage() {
-        if (orig_) {
-            std::fill_n(orig_, size_, T(0));
-        }
-        for (std::size_t bin = 0; bin < compensation_terms_; ++bin) {
-            std::fill_n(compensation_ptrs_[bin], size_, T(0));
+        if (compensation_block_) {
+            std::fill_n(compensation_block_, compensation_terms_ * size_, T(0));
         }
     }
 
@@ -190,11 +154,8 @@ private:
     std::size_t size_ = 0;
     std::size_t compensation_terms_ = 0;
     std::pmr::memory_resource *resource_ = std::pmr::get_default_resource();
-    T *orig_ = nullptr;
     T *compensation_block_ = nullptr;
-    T **compensation_ptrs_ = nullptr;
     bool owns_storage_ = false;
 };
 
 }  // namespace reidblas
-

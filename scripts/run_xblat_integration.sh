@@ -94,6 +94,7 @@ TMP_ROOT="$(mktemp -d)"
 BUILD_DIR="${TMP_ROOT}/build"
 INSTALL_DIR="${TMP_ROOT}/install"
 LOG_DIR="${TMP_ROOT}/logs"
+EXEC_ROOT="${TMP_ROOT}/exec"
 
 function cleanup() {
     if [[ "$KEEP_TEMP" != true ]]; then
@@ -104,7 +105,7 @@ function cleanup() {
 }
 trap cleanup EXIT
 
-mkdir -p "$BUILD_DIR" "$INSTALL_DIR" "$LOG_DIR"
+mkdir -p "$BUILD_DIR" "$INSTALL_DIR" "$LOG_DIR" "$EXEC_ROOT"
 
 echo "[xBLAT] Configuring project (build type: ${BUILD_TYPE})"
 cmake -S "$REPO_ROOT" -B "$BUILD_DIR" -DCMAKE_BUILD_TYPE="${BUILD_TYPE}" -DCMAKE_INSTALL_PREFIX="${INSTALL_DIR}"
@@ -148,6 +149,8 @@ TIMED_OUT=()
 for exe in "${EXECUTABLES[@]}"; do
     base="$(basename "$exe")"
     log_file="${LOG_DIR}/${base}.log"
+    run_dir="${EXEC_ROOT}/${base}"
+    mkdir -p "$run_dir"
     echo "[xBLAT] Running ${exe}" | tee "$log_file"
     if [[ -n "${LD_LIBRARY_PATH:-}" ]]; then
         env_vars=("LD_PRELOAD=${LIB_PATH}" "LD_LIBRARY_PATH=${LIB_DIR}:${LD_LIBRARY_PATH}")
@@ -156,14 +159,57 @@ for exe in "${EXECUTABLES[@]}"; do
     fi
     runner=(env "${env_vars[@]}" "$exe")
 
+    # Locate optional stdin data file for level 2/3 tests.
+    input_file=""
+    if [[ "$base" =~ ^xblat([23])([sdcz])$ ]]; then
+        level="${BASH_REMATCH[1]}"
+        kind="${BASH_REMATCH[2]}"
+        candidate="$(dirname "$exe")/${kind}blat${level}.in"
+        [[ -f "$candidate" ]] && input_file="$candidate"
+    elif [[ "$base" =~ ^x([sdcz])cblat([23])$ ]]; then
+        kind="${BASH_REMATCH[1]}"
+        level="${BASH_REMATCH[2]}"
+        candidate="$(dirname "$exe")/${kind}in${level}"
+        [[ -f "$candidate" ]] && input_file="$candidate"
+    fi
+
     if [[ "$TIMEOUT" != 0 ]]; then
         runner=(timeout "${TIMEOUT}" "${runner[@]}")
     fi
 
     set +e
-    "${runner[@]}" >>"$log_file" 2>&1
+    if [[ -n "$input_file" ]]; then
+        (
+            cd "$run_dir"
+            "${runner[@]}" <"$input_file" >>"$log_file" 2>&1
+        )
+    else
+        (
+            cd "$run_dir"
+            "${runner[@]}" >>"$log_file" 2>&1
+        )
+    fi
     status=$?
     set -e
+
+    failure_note=""
+    while IFS= read -r out_file; do
+        if grep -Eiq 'FAIL|ERROR' "$out_file"; then
+            first_match="$(grep -Ei 'FAIL|ERROR' "$out_file" | head -n 1)"
+            failure_note+="$(basename "$out_file"): ${first_match}"$'\n'
+        fi
+    done < <(find "$run_dir" -maxdepth 1 -type f -name '*.out' -print)
+
+    if [[ -z "$failure_note" ]]; then
+        if grep -Eiq '(^|[^A-Z])FAIL([^A-Z]|$)' "$log_file"; then
+            first_log_fail="$(grep -Ei '(^|[^A-Z])FAIL([^A-Z]|$)' "$log_file" | head -n 1)"
+            failure_note+="log: ${first_log_fail}"$'\n'
+        fi
+    fi
+
+    if [[ -n "$failure_note" && $status -eq 0 ]]; then
+        status=1
+    fi
 
     if [[ "$TIMEOUT" != 0 && $status -eq 124 ]]; then
         echo "[xBLAT] ${base} -> TIMEOUT" | tee -a "$log_file"
@@ -173,6 +219,9 @@ for exe in "${EXECUTABLES[@]}"; do
         PASSED+=("$base")
     else
         echo "[xBLAT] ${base} -> FAIL (exit ${status})" | tee -a "$log_file"
+        if [[ -n "$failure_note" ]]; then
+            printf '%s' "$failure_note" | tee -a "$log_file"
+        fi
         FAILED+=("$base")
     fi
     echo >>"$log_file"

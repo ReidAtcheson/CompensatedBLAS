@@ -5,8 +5,9 @@ BLAS implemented using tunable length compensation terms and optional deferred r
 ## xBLAT Integration Harness
 
 The helper script `scripts/run_xblat_integration.sh` automates a clean configure
-and install to a temporary prefix before running the `libblas-test` xBLAT
-executables under `LD_PRELOAD`. Example:
+and install to a temporary prefix before running the `libblas-test` Fortran
+xBLAT executables under `LD_PRELOAD`. Install the canonical test binaries and
+input decks with `apt-get install libblas-test` on Debian/Ubuntu systems. Example:
 
 ```
 ./scripts/run_xblat_integration.sh --build-type RelWithDebInfo --timeout 120

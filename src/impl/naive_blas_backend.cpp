@@ -61,6 +61,22 @@ void zero_bins(T *bins, std::size_t terms) {
 }
 
 template <typename T>
+std::vector<T> &thread_local_bins(std::size_t count) {
+    thread_local std::vector<T> bins;
+    if (count == 0) {
+        bins.clear();
+        return bins;
+    }
+    if (bins.size() < count) {
+        bins.assign(count, T{});
+    } else {
+        std::fill_n(bins.data(), count, T{});
+        bins.resize(count);
+    }
+    return bins;
+}
+
+template <typename T>
 void accumulate_value(T &primary, T *bins, std::size_t terms, const T &value) {
     if (is_zero(value)) {
         return;
@@ -275,8 +291,8 @@ T dot_impl(std::int64_t count, const T *x, std::ptrdiff_t incx, const T *y, std:
     }
     const std::size_t terms = compensated_blas::runtime::compensation_terms();
     T primary{};
-    std::vector<T> compensation(terms, T{});
-    auto *bins = compensation.data();
+    std::vector<T> &compensation = thread_local_bins<T>(terms);
+    auto *bins = compensation.empty() ? nullptr : compensation.data();
 
     const T *x_ptr = adjust_pointer(x, count, incx);
     const T *y_ptr = adjust_pointer(y, count, incy);
@@ -307,8 +323,8 @@ float sdsdot_impl(std::int64_t count,
     }
     const std::size_t terms = compensated_blas::runtime::compensation_terms();
     double primary = static_cast<double>(initial_bias);
-    std::vector<double> compensation(terms, 0.0);
-    auto *bins = compensation.data();
+    std::vector<double> &compensation = thread_local_bins<double>(terms);
+    auto *bins = compensation.empty() ? nullptr : compensation.data();
 
     const float *x_ptr = adjust_pointer(x, count, incx);
     const float *y_ptr = adjust_pointer(y, count, incy);
@@ -335,8 +351,9 @@ double dsdot_impl(std::int64_t count,
     }
     const std::size_t terms = compensated_blas::runtime::compensation_terms();
     double primary{};
-    std::vector<double> compensation(terms, 0.0);
-    auto *bins = compensation.data();
+    std::vector<double> &compensation = thread_local_bins<double>(terms);
+    auto *bins = compensation.empty() ? nullptr : compensation.data();
+    
     const float *x_ptr = adjust_pointer(x, count, incx);
     const float *y_ptr = adjust_pointer(y, count, incy);
     const std::ptrdiff_t x_step = incx;
@@ -366,8 +383,8 @@ void axpy_impl(std::int64_t count,
     const deferred_vector_metadata_t deferred = fetch_deferred_vector(y, incy);
     const bool use_deferred = deferred.compensation != nullptr && deferred.terms > 0;
 
-    std::vector<T> local_bins(global_terms, T{});
-    T *local_bins_ptr = global_terms > 0 ? local_bins.data() : nullptr;
+    std::vector<T> &local_bins = thread_local_bins<T>(global_terms);
+    T *local_bins_ptr = local_bins.empty() ? nullptr : local_bins.data();
 
     const T *x_ptr = adjust_pointer(x, count, incx);
     T *y_ptr = adjust_pointer(y, count, incy);
@@ -444,8 +461,8 @@ void syrk_impl(const char *uplo,
     const bool conj_first = scalar_traits_t<T>::is_complex && trans && (*trans == 'C' || *trans == 'c');
 
     const std::size_t global_terms = compensated_blas::runtime::compensation_terms();
-    std::vector<T> local_bins(global_terms, T{});
-    T *local_bins_ptr = global_terms > 0 ? local_bins.data() : nullptr;
+    std::vector<T> &local_bins = thread_local_bins<T>(global_terms);
+    T *local_bins_ptr = local_bins.empty() ? nullptr : local_bins.data();
 
     const bool use_deferred = deferred.compensation != nullptr && deferred.terms > 0;
     const bool c_row_major = use_deferred ? deferred.row_major : false;

@@ -7,9 +7,9 @@
 
 #include <gtest/gtest.h>
 
-#include "compensated_arithmetic.hpp"
+#include "impl/compensated_arithmetic.hpp"
 #include "reidblas.hpp"
-#include "compensated_accumulator.hpp"
+#include "impl/compensated_accumulator.hpp"
 
 TEST(reidblas_sanity, identity_returns_input) {
     constexpr reidblas::index_t value = 123;

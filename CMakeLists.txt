@@ -9,15 +9,25 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
-file(GLOB_RECURSE REIDBLAS_ILP64_SOURCES CONFIGURE_DEPENDS
-    src/blas/ilp64/*.cpp
+set(REIDBLAS_IMPL_SOURCES
+    src/impl/reidblas_backend_ilp64.cpp
 )
-list(SORT REIDBLAS_ILP64_SOURCES)
+
+add_library(reidblas_impl STATIC
+    ${REIDBLAS_IMPL_SOURCES}
+)
+set_target_properties(reidblas_impl PROPERTIES
+    POSITION_INDEPENDENT_CODE ON
+)
+target_compile_features(reidblas_impl PUBLIC cxx_std_17)
+target_include_directories(reidblas_impl PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src>
+)
 
 add_library(reidblas SHARED
     src/reidblas.cpp
+    src/reidblas_blas_ilp64_dispatch.cpp
     src/reidblas_blas_lp64_wrappers.cpp
-    ${REIDBLAS_ILP64_SOURCES}
 )
 set_target_properties(reidblas PROPERTIES
     OUTPUT_NAME "reidblas"
@@ -30,10 +40,11 @@ target_include_directories(reidblas PUBLIC
     $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/reidblas>
 )
 target_compile_definitions(reidblas PUBLIC REIDBLAS_USE_ILP64=0)
+target_link_libraries(reidblas PRIVATE reidblas_impl)
 
 add_library(reidblas_ilp64 SHARED
     src/reidblas.cpp
-    ${REIDBLAS_ILP64_SOURCES}
+    src/reidblas_blas_ilp64_dispatch.cpp
 )
 set_target_properties(reidblas_ilp64 PROPERTIES
     OUTPUT_NAME "reidblas_ilp64"
@@ -46,6 +57,7 @@ target_include_directories(reidblas_ilp64 PUBLIC
     $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/reidblas>
 )
 target_compile_definitions(reidblas_ilp64 PUBLIC REIDBLAS_USE_ILP64=1)
+target_link_libraries(reidblas_ilp64 PRIVATE reidblas_impl)
 
 add_library(ReidBLAS::reidblas ALIAS reidblas)
 add_library(ReidBLAS::reidblas_ilp64 ALIAS reidblas_ilp64)

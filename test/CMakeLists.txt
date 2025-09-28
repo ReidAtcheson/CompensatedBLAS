@@ -7,6 +7,7 @@ add_executable(reidblas_tests
 target_link_libraries(reidblas_tests
     PRIVATE
         reidblas
+        reidblas_impl
         GTest::gtest_main
 )
 

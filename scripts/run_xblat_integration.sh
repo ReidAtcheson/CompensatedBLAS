@@ -241,6 +241,27 @@ printf 'Passed:  %d\n' "$PASS_COUNT"
 printf 'Failed:  %d\n' "$FAIL_COUNT"
 printf 'Timeout: %d\n' "$TIMEOUT_COUNT"
 
+if [[ ${#PASSED[@]} -gt 0 ]]; then
+    printf '\nPassing executables:\n'
+    for exe in "${PASSED[@]}"; do
+        printf '  %s\n' "$exe"
+    done
+fi
+
+if [[ ${#FAILED[@]} -gt 0 ]]; then
+    printf '\nFailing executables:\n'
+    for exe in "${FAILED[@]}"; do
+        printf '  %s\n' "$exe"
+    done
+fi
+
+if [[ ${#TIMED_OUT[@]} -gt 0 ]]; then
+    printf '\nTimed-out executables:\n'
+    for exe in "${TIMED_OUT[@]}"; do
+        printf '  %s\n' "$exe"
+    done
+fi
+
 if [[ $FAIL_COUNT -eq 0 && $TIMEOUT_COUNT -eq 0 ]]; then
     exit 0
 else

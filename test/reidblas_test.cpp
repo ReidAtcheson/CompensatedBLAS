@@ -9,46 +9,86 @@
 
 #include "compensated_arithmetic.hpp"
 #include "reidblas.hpp"
-#include "soa_accumulator.hpp"
+#include "compensated_accumulator.hpp"
 
 TEST(reidblas_sanity, identity_returns_input) {
     constexpr reidblas::index_t value = 123;
     EXPECT_EQ(reidblas::identity(value), value);
 }
 
-TEST(soa_accumulator_test, accumulates_without_compensation) {
+namespace {
+
+template <reidblas::accumulator_layout Layout>
+void check_accumulates_without_compensation() {
     std::array<double, 3> working{};
-    reidblas::soa_accumulator_t<double> acc(working.size(), 0);
+    reidblas::compensated_accumulator_t<double, Layout> acc(working.size(), 0);
     acc.accumulate(0, working[0], 1.0);
     acc.accumulate(0, working[0], 2.0);
     EXPECT_DOUBLE_EQ(acc.round(0, working[0]), 3.0);
 }
 
-TEST(soa_accumulator_test, accumulates_with_single_compensation) {
+template <reidblas::accumulator_layout Layout>
+void check_accumulates_with_single_compensation() {
     std::array<double, 1> working{};
-    reidblas::soa_accumulator_t<double> acc(working.size(), 1);
+    reidblas::compensated_accumulator_t<double, Layout> acc(working.size(), 1);
     acc.accumulate(0, working[0], 1e16);
     acc.accumulate(0, working[0], 1.0);
     acc.round(0, working[0]);
     EXPECT_DOUBLE_EQ(working[0], 1e16 + 1.0);
 }
 
-TEST(soa_accumulator_test, uses_custom_memory_resource) {
+template <reidblas::accumulator_layout Layout>
+void check_uses_custom_memory_resource() {
     std::array<std::byte, 1024> buffer{};
     std::pmr::monotonic_buffer_resource resource(buffer.data(), buffer.size());
     std::array<double, 4> working{};
-    reidblas::soa_accumulator_t<double> acc(working.size(), 2, &resource);
+    reidblas::compensated_accumulator_t<double, Layout> acc(working.size(), 2, &resource);
     acc.accumulate(1, working[1], 3.5);
     EXPECT_DOUBLE_EQ(acc.round(1, working[1]), 3.5);
 }
 
-TEST(soa_accumulator_test, multiple_compensation_bins) {
+template <reidblas::accumulator_layout Layout>
+void check_multiple_compensation_bins() {
     std::array<double, 1> working{};
-    reidblas::soa_accumulator_t<double> acc(working.size(), 3);
+    reidblas::compensated_accumulator_t<double, Layout> acc(working.size(), 3);
     for (int i = 0; i < 1000; ++i) {
         acc.accumulate(0, working[0], 1e-10);
     }
     EXPECT_NEAR(acc.round(0, working[0]), 1e-7, 1e-12);
+}
+
+}  // namespace
+
+TEST(compensated_accumulator_test, accumulates_without_compensation_soa) {
+    check_accumulates_without_compensation<reidblas::accumulator_layout::soa>();
+}
+
+TEST(compensated_accumulator_test, accumulates_without_compensation_aos) {
+    check_accumulates_without_compensation<reidblas::accumulator_layout::aos>();
+}
+
+TEST(compensated_accumulator_test, accumulates_with_single_compensation_soa) {
+    check_accumulates_with_single_compensation<reidblas::accumulator_layout::soa>();
+}
+
+TEST(compensated_accumulator_test, accumulates_with_single_compensation_aos) {
+    check_accumulates_with_single_compensation<reidblas::accumulator_layout::aos>();
+}
+
+TEST(compensated_accumulator_test, uses_custom_memory_resource_soa) {
+    check_uses_custom_memory_resource<reidblas::accumulator_layout::soa>();
+}
+
+TEST(compensated_accumulator_test, uses_custom_memory_resource_aos) {
+    check_uses_custom_memory_resource<reidblas::accumulator_layout::aos>();
+}
+
+TEST(compensated_accumulator_test, multiple_compensation_bins_soa) {
+    check_multiple_compensation_bins<reidblas::accumulator_layout::soa>();
+}
+
+TEST(compensated_accumulator_test, multiple_compensation_bins_aos) {
+    check_multiple_compensation_bins<reidblas::accumulator_layout::aos>();
 }
 
 TEST(compensated_arithmetic_test, two_prod_recovers_squared_value) {

@@ -9,14 +9,16 @@
 
 namespace reidblas {
 
-// Struct-of-array accumulator with configurable compensation bins per entry.
-// Allocates storage for compensation terms from the supplied polymorphic memory resource.
-template <typename T>
-class soa_accumulator_t {
+enum class accumulator_layout { soa, aos };
+
+// Accumulator with configurable compensation bins per entry.
+// Storage layout can be structure-of-arrays (default) or array-of-structures.
+template <typename T, accumulator_layout Layout = accumulator_layout::soa>
+class compensated_accumulator_t {
 public:
-    soa_accumulator_t(std::size_t length,
-                      std::size_t compensation_terms,
-                      std::pmr::memory_resource *resource = std::pmr::get_default_resource())
+    compensated_accumulator_t(std::size_t length,
+                              std::size_t compensation_terms,
+                              std::pmr::memory_resource *resource = std::pmr::get_default_resource())
         : size_(length),
           compensation_terms_(compensation_terms),
           resource_(resource ? resource : std::pmr::get_default_resource()) {
@@ -24,10 +26,10 @@ public:
         zero_storage();
     }
 
-    soa_accumulator_t(const soa_accumulator_t &) = delete;
-    soa_accumulator_t &operator=(const soa_accumulator_t &) = delete;
+    compensated_accumulator_t(const compensated_accumulator_t &) = delete;
+    compensated_accumulator_t &operator=(const compensated_accumulator_t &) = delete;
 
-    soa_accumulator_t(soa_accumulator_t &&other) noexcept
+    compensated_accumulator_t(compensated_accumulator_t &&other) noexcept
         : size_(other.size_),
           compensation_terms_(other.compensation_terms_),
           resource_(other.resource_),
@@ -36,7 +38,7 @@ public:
         other.reset_pointers();
     }
 
-    soa_accumulator_t &operator=(soa_accumulator_t &&other) noexcept {
+    compensated_accumulator_t &operator=(compensated_accumulator_t &&other) noexcept {
         if (this == &other) {
             return *this;
         }
@@ -50,7 +52,7 @@ public:
         return *this;
     }
 
-    ~soa_accumulator_t() { release_storage(); }
+    ~compensated_accumulator_t() { release_storage(); }
 
     inline std::size_t size() const noexcept { return size_; }
     inline std::size_t compensation_terms() const noexcept { return compensation_terms_; }
@@ -58,7 +60,7 @@ public:
     inline T compensation(std::size_t bin, std::size_t i) const {
         assert(bin < compensation_terms_);
         assert(i < size_);
-        return compensation_block_[bin * size_ + i];
+        return compensation_block_[compensation_offset(bin, i)];
     }
 
     inline void accumulate(std::size_t i, T &primary, const T &val) {
@@ -74,7 +76,7 @@ public:
             if (carry == T(0)) {
                 return;
             }
-            two_sum(compensation_block_[bin * size_ + i], carry);
+            two_sum(compensation_block_[compensation_offset(bin, i)], carry);
         }
         if (carry != T(0)) {
             primary += carry;
@@ -90,7 +92,7 @@ public:
         T sum = primary;
         T carry = T(0);
         for (std::size_t bin = 0; bin < compensation_terms_; ++bin) {
-            const std::size_t offset = bin * size_ + i;
+            const std::size_t offset = compensation_offset(bin, i);
             const T value = compensation_block_[offset] + carry;
             compensation_block_[offset] = T(0);
             carry = value;
@@ -143,6 +145,13 @@ private:
         if (compensation_block_) {
             std::fill_n(compensation_block_, compensation_terms_ * size_, T(0));
         }
+    }
+
+    inline std::size_t compensation_offset(std::size_t bin, std::size_t i) const noexcept {
+        if constexpr (Layout == accumulator_layout::soa) {
+            return bin * size_ + i;
+        }
+        return i * compensation_terms_ + bin;
     }
 
     std::size_t size_ = 0;

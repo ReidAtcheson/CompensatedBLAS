@@ -3,7 +3,6 @@
 #include <cstddef>
 #include <cstdint>
 #include <complex>
-#include <memory_resource>
 #include <type_traits>
 
 #include <gtest/gtest.h>
@@ -23,7 +22,7 @@ namespace {
 template <compensated_blas::accumulator_layout Layout>
 void check_accumulates_without_compensation() {
     std::array<double, 3> working{};
-    compensated_blas::compensated_accumulator_t<double, Layout> acc(working.size(), 0);
+    compensated_blas::compensated_accumulator_t<double, Layout> acc(nullptr, working.size(), 0);
     acc.accumulate(0, working[0], 1.0);
     acc.accumulate(0, working[0], 2.0);
     EXPECT_DOUBLE_EQ(acc.round(0, working[0]), 3.0);
@@ -32,7 +31,8 @@ void check_accumulates_without_compensation() {
 template <compensated_blas::accumulator_layout Layout>
 void check_accumulates_with_single_compensation() {
     std::array<double, 1> working{};
-    compensated_blas::compensated_accumulator_t<double, Layout> acc(working.size(), 1);
+    std::array<double, 1> bins{};
+    compensated_blas::compensated_accumulator_t<double, Layout> acc(bins.data(), working.size(), 1);
     acc.accumulate(0, working[0], 1e16);
     acc.accumulate(0, working[0], 1.0);
     acc.round(0, working[0]);
@@ -40,11 +40,10 @@ void check_accumulates_with_single_compensation() {
 }
 
 template <compensated_blas::accumulator_layout Layout>
-void check_uses_custom_memory_resource() {
-    std::array<std::byte, 1024> buffer{};
-    std::pmr::monotonic_buffer_resource resource(buffer.data(), buffer.size());
+void check_uses_external_storage() {
     std::array<double, 4> working{};
-    compensated_blas::compensated_accumulator_t<double, Layout> acc(working.size(), 2, &resource);
+    std::array<double, 8> bins{};
+    compensated_blas::compensated_accumulator_t<double, Layout> acc(bins.data(), working.size(), 2);
     acc.accumulate(1, working[1], 3.5);
     EXPECT_DOUBLE_EQ(acc.round(1, working[1]), 3.5);
 }
@@ -52,7 +51,8 @@ void check_uses_custom_memory_resource() {
 template <compensated_blas::accumulator_layout Layout>
 void check_multiple_compensation_bins() {
     std::array<double, 1> working{};
-    compensated_blas::compensated_accumulator_t<double, Layout> acc(working.size(), 3);
+    std::array<double, 3> bins{};
+    compensated_blas::compensated_accumulator_t<double, Layout> acc(bins.data(), working.size(), 3);
     for (int i = 0; i < 1000; ++i) {
         acc.accumulate(0, working[0], 1e-10);
     }
@@ -77,12 +77,12 @@ TEST(compensated_accumulator_test, accumulates_with_single_compensation_aos) {
     check_accumulates_with_single_compensation<compensated_blas::accumulator_layout::aos>();
 }
 
-TEST(compensated_accumulator_test, uses_custom_memory_resource_soa) {
-    check_uses_custom_memory_resource<compensated_blas::accumulator_layout::soa>();
+TEST(compensated_accumulator_test, uses_external_storage_soa) {
+    check_uses_external_storage<compensated_blas::accumulator_layout::soa>();
 }
 
-TEST(compensated_accumulator_test, uses_custom_memory_resource_aos) {
-    check_uses_custom_memory_resource<compensated_blas::accumulator_layout::aos>();
+TEST(compensated_accumulator_test, uses_external_storage_aos) {
+    check_uses_external_storage<compensated_blas::accumulator_layout::aos>();
 }
 
 TEST(compensated_accumulator_test, multiple_compensation_bins_soa) {

@@ -1,11 +1,13 @@
 #include "impl/backend_stub.hpp"
+#include "impl/naive_blas_backend.hpp"
 
 namespace {
 
 class empty_backend_t final : public compensated_blas::impl::stub_backend_t {};
 
 empty_backend_t empty_backend_instance{};
-compensated_blas::impl::blas_backend_t *active_backend_ptr = &empty_backend_instance;
+compensated_blas::impl::blas_backend_t *active_backend_ptr =
+    compensated_blas::impl::detail::acquire_naive_backend();
 
 }  // namespace
 

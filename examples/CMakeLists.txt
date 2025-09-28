@@ -1,0 +1,9 @@
+add_executable(conjugate_residual_solver
+    conjugate_residual_solver.cpp
+)
+target_link_libraries(conjugate_residual_solver PRIVATE compensatedblas compensatedblas_impl)
+
+add_executable(syrk_compensation_demo
+    syrk_compensation_demo.cpp
+)
+target_link_libraries(syrk_compensation_demo PRIVATE compensatedblas compensatedblas_impl)

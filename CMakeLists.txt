@@ -12,6 +12,7 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 set(COMPENSATEDBLAS_IMPL_SOURCES
     src/impl/compensated_blas_backend_ilp64.cpp
     src/impl/runtime.cpp
+    src/impl/naive_blas_backend.cpp
 )
 
 add_library(compensatedblas_impl STATIC

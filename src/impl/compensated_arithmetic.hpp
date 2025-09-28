@@ -5,7 +5,7 @@
 #include <type_traits>
 #include <utility>
 
-namespace reidblas {
+namespace compensated_blas {
 
 // In-place compensated summation of two floating-point values.
 template <typename T>
@@ -81,4 +81,4 @@ inline auto two_prod(const T a, const T b) {
     }
 }
 
-}  // namespace reidblas
+}  // namespace compensated_blas

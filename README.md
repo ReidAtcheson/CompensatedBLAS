@@ -1,4 +1,4 @@
-# ReidBLAS
+# CompensatedBLAS
 BLAS implemented using tunable length compensation terms and optional deferred rounding
 
 
@@ -19,7 +19,7 @@ Use `--keep-temp` to inspect the staged install and per-test logs, or
 
 ## Adding a Backend
 
-Backends are modeled as C++ subclasses of `reidblas::impl::BlasBackend`. Each
+Backends are modeled as C++ subclasses of `compensated_blas::impl::BlasBackend`. Each
 BLAS routine is a pure virtual method; the default implementation shipped with
 the library (`EmptyBackend`) simply ignores its arguments and, for non-`void`
 functions, returns a zero-initialized value.
@@ -30,25 +30,25 @@ To introduce a new backend:
    derive from `BlasBackend`. The easiest way to provide the method bodies is to
    reuse the master macro list:
    ```c++
-   class MyBackend final : public reidblas::impl::BlasBackend {
+   class MyBackend final : public compensated_blas::impl::BlasBackend {
    public:
-   #define REIDBLAS_ILP64_FUNCTION(rt, name, signature, args) \
+   #define COMPENSATEDBLAS_ILP64_FUNCTION(rt, name, signature, args) \
        rt name signature override;  // declare overrides
-   #include "impl/reidblas_ilp64_functions.def"
-   #undef REIDBLAS_ILP64_FUNCTION
+   #include "impl/compensated_blas_ilp64_functions.def"
+   #undef COMPENSATEDBLAS_ILP64_FUNCTION
    };
    ```
    Then include the same list again to emit definitions, or write the bodies
    manually if you prefer.
 
 2. **Register the backend** – Expose a static instance (or factory) and call
-   `reidblas::impl::set_active_backend(&instance);` during library
+   `compensated_blas::impl::set_active_backend(&instance);` during library
    initialisation or from your own entry point. Tests can also substitute
    backends using this hook.
 
 3. **Add the file to CMake** – Append your new implementation file to
-   `REIDBLAS_IMPL_SOURCES` in the top-level `CMakeLists.txt` so it is compiled
-   into the `reidblas_impl` target (unit tests link against the same static
+   `COMPENSATEDBLAS_IMPL_SOURCES` in the top-level `CMakeLists.txt` so it is compiled
+   into the `compensatedblas_impl` target (unit tests link against the same static
    archive).
 
 This design keeps the exported BLAS symbols as plain C entry points while

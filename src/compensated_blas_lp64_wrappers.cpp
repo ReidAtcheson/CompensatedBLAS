@@ -5,7 +5,7 @@
 
 namespace {
 
-inline compensated_blas::impl::BlasBackend &backend() {
+inline compensated_blas::impl::blas_backend_t &backend() {
     return compensated_blas::impl::get_active_backend();
 }
 

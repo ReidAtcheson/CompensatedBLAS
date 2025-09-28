@@ -6,9 +6,9 @@
 
 namespace compensated_blas::impl {
 
-class BlasBackend {
+class blas_backend_t {
 public:
-    virtual ~BlasBackend() = default;
+    virtual ~blas_backend_t() = default;
 
 #define COMPENSATEDBLAS_ILP64_FUNCTION(return_type, name, signature, args) \
     virtual return_type name signature = 0;
@@ -18,14 +18,14 @@ public:
 #undef COMPENSATEDBLAS_ILP64_FUNCTION
 };
 
-BlasBackend &get_active_backend();
-void set_active_backend(BlasBackend *backend);
+blas_backend_t &get_active_backend();
+void set_active_backend(blas_backend_t *backend);
 
-inline BlasBackend &get_active_ilp64_backend() {
+inline blas_backend_t &get_active_ilp64_backend() {
     return get_active_backend();
 }
 
-inline void set_active_ilp64_backend(BlasBackend *backend) {
+inline void set_active_ilp64_backend(blas_backend_t *backend) {
     set_active_backend(backend);
 }
 

@@ -3,7 +3,7 @@ set -euo pipefail
 
 function usage() {
     cat <<'USAGE'
-Run the BLAS xBLAT verification executables against a freshly built ReidBLAS
+Run the BLAS xBLAT verification executables against a freshly built CompensatedBLAS
 shared library by staging the build and install into a temporary workspace.
 
 Usage: run_xblat_integration.sh [options]
@@ -15,7 +15,7 @@ Options:
   --search-dir <path>     Directory to search for xBLAT executables.
                           May be repeated. Defaults to /usr/lib/x86_64-linux-gnu/blas
                           or the colon-separated XBLAT_SEARCH_DIRS environment variable.
-  --library <name>        Library filename to preload (default: libreidblas.so)
+  --library <name>        Library filename to preload (default: libCompensatedBLAS.so)
   --keep-temp             Preserve temporary workspace for debugging
   -h, --help              Show this help message
 
@@ -35,7 +35,7 @@ BUILD_TYPE="${BUILD_TYPE:-Release}"
 JOBS="${XBLAT_JOBS:-$(nproc 2>/dev/null || echo 1)}"
 TIMEOUT="${XBLAT_TIMEOUT:-300}"
 DEFAULT_SEARCH="/usr/lib/x86_64-linux-gnu/blas"
-LIBRARY_NAME="${XBLAT_LIBRARY:-libreidblas.so}"
+LIBRARY_NAME="${XBLAT_LIBRARY:-libCompensatedBLAS.so}"
 KEEP_TEMP=false
 SEARCH_DIRS=()
 

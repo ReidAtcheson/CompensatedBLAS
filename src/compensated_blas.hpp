@@ -2,9 +2,9 @@
 
 #include <cstdint>
 
-namespace reidblas {
+namespace compensated_blas {
 
-#if REIDBLAS_USE_ILP64
+#if COMPENSATEDBLAS_USE_ILP64
 using index_t = std::int64_t;
 #else
 using index_t = int;
@@ -12,4 +12,4 @@ using index_t = int;
 
 index_t identity(index_t value);
 
-}  // namespace reidblas
+}  // namespace compensated_blas

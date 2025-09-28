@@ -1,12 +1,12 @@
-#include "reidblas_blas_lp64.h"
-#include "impl/reidblas_backend_ilp64.hpp"
+#include "compensated_blas_lp64.h"
+#include "impl/compensated_blas_backend_ilp64.hpp"
 
 #include <cstdint>
 
 namespace {
 
-inline reidblas::impl::BlasBackend &backend() {
-    return reidblas::impl::get_active_backend();
+inline compensated_blas::impl::BlasBackend &backend() {
+    return compensated_blas::impl::get_active_backend();
 }
 
 }  // namespace
@@ -31,11 +31,11 @@ extern "C" void srotmg_(
 }
 
 extern "C" void srot_(
-    const reidblas_blas_int *n,
+    const compensated_blas_blas_int *n,
     float *x,
-    const reidblas_blas_int *incx,
+    const compensated_blas_blas_int *incx,
     float *y,
-    const reidblas_blas_int *incy,
+    const compensated_blas_blas_int *incy,
     const float *c,
     const float *s
 ) {
@@ -62,11 +62,11 @@ extern "C" void srot_(
 }
 
 extern "C" void srotm_(
-    const reidblas_blas_int *n,
+    const compensated_blas_blas_int *n,
     float *x,
-    const reidblas_blas_int *incx,
+    const compensated_blas_blas_int *incx,
     float *y,
-    const reidblas_blas_int *incy,
+    const compensated_blas_blas_int *incy,
     const float *param
 ) {
     std::int64_t n_value = 0;
@@ -92,11 +92,11 @@ extern "C" void srotm_(
 }
 
 extern "C" void sswap_(
-    const reidblas_blas_int *n,
+    const compensated_blas_blas_int *n,
     float *x,
-    const reidblas_blas_int *incx,
+    const compensated_blas_blas_int *incx,
     float *y,
-    const reidblas_blas_int *incy
+    const compensated_blas_blas_int *incy
 ) {
     std::int64_t n_value = 0;
     const std::int64_t *n_ilp64 = nullptr;
@@ -121,10 +121,10 @@ extern "C" void sswap_(
 }
 
 extern "C" void sscal_(
-    const reidblas_blas_int *n,
+    const compensated_blas_blas_int *n,
     const float *alpha,
     float *x,
-    const reidblas_blas_int *incx
+    const compensated_blas_blas_int *incx
 ) {
     std::int64_t n_value = 0;
     const std::int64_t *n_ilp64 = nullptr;
@@ -143,11 +143,11 @@ extern "C" void sscal_(
 }
 
 extern "C" void scopy_(
-    const reidblas_blas_int *n,
+    const compensated_blas_blas_int *n,
     const float *x,
-    const reidblas_blas_int *incx,
+    const compensated_blas_blas_int *incx,
     float *y,
-    const reidblas_blas_int *incy
+    const compensated_blas_blas_int *incy
 ) {
     std::int64_t n_value = 0;
     const std::int64_t *n_ilp64 = nullptr;
@@ -172,12 +172,12 @@ extern "C" void scopy_(
 }
 
 extern "C" void saxpy_(
-    const reidblas_blas_int *n,
+    const compensated_blas_blas_int *n,
     const float *alpha,
     const float *x,
-    const reidblas_blas_int *incx,
+    const compensated_blas_blas_int *incx,
     float *y,
-    const reidblas_blas_int *incy
+    const compensated_blas_blas_int *incy
 ) {
     std::int64_t n_value = 0;
     const std::int64_t *n_ilp64 = nullptr;
@@ -202,11 +202,11 @@ extern "C" void saxpy_(
 }
 
 extern "C" float sdot_(
-    const reidblas_blas_int *n,
+    const compensated_blas_blas_int *n,
     const float *x,
-    const reidblas_blas_int *incx,
+    const compensated_blas_blas_int *incx,
     const float *y,
-    const reidblas_blas_int *incy
+    const compensated_blas_blas_int *incy
 ) {
     std::int64_t n_value = 0;
     const std::int64_t *n_ilp64 = nullptr;
@@ -231,12 +231,12 @@ extern "C" float sdot_(
 }
 
 extern "C" float sdsdot_(
-    const reidblas_blas_int *n,
+    const compensated_blas_blas_int *n,
     const float *sb,
     const float *x,
-    const reidblas_blas_int *incx,
+    const compensated_blas_blas_int *incx,
     const float *y,
-    const reidblas_blas_int *incy
+    const compensated_blas_blas_int *incy
 ) {
     std::int64_t n_value = 0;
     const std::int64_t *n_ilp64 = nullptr;
@@ -261,9 +261,9 @@ extern "C" float sdsdot_(
 }
 
 extern "C" float snrm2_(
-    const reidblas_blas_int *n,
+    const compensated_blas_blas_int *n,
     const float *x,
-    const reidblas_blas_int *incx
+    const compensated_blas_blas_int *incx
 ) {
     std::int64_t n_value = 0;
     const std::int64_t *n_ilp64 = nullptr;
@@ -282,9 +282,9 @@ extern "C" float snrm2_(
 }
 
 extern "C" float sasum_(
-    const reidblas_blas_int *n,
+    const compensated_blas_blas_int *n,
     const float *x,
-    const reidblas_blas_int *incx
+    const compensated_blas_blas_int *incx
 ) {
     std::int64_t n_value = 0;
     const std::int64_t *n_ilp64 = nullptr;
@@ -302,10 +302,10 @@ extern "C" float sasum_(
     return backend().sasum(n_ilp64, x, incx_ilp64);
 }
 
-extern "C" reidblas_blas_int isamax_(
-    const reidblas_blas_int *n,
+extern "C" compensated_blas_blas_int isamax_(
+    const compensated_blas_blas_int *n,
     const float *x,
-    const reidblas_blas_int *incx
+    const compensated_blas_blas_int *incx
 ) {
     std::int64_t n_value = 0;
     const std::int64_t *n_ilp64 = nullptr;
@@ -321,7 +321,7 @@ extern "C" reidblas_blas_int isamax_(
     }
 
     auto result = backend().isamax(n_ilp64, x, incx_ilp64);
-    return static_cast<reidblas_blas_int>(result);
+    return static_cast<compensated_blas_blas_int>(result);
 }
 
 extern "C" void drotg_(
@@ -344,11 +344,11 @@ extern "C" void drotmg_(
 }
 
 extern "C" void drot_(
-    const reidblas_blas_int *n,
+    const compensated_blas_blas_int *n,
     double *x,
-    const reidblas_blas_int *incx,
+    const compensated_blas_blas_int *incx,
     double *y,
-    const reidblas_blas_int *incy,
+    const compensated_blas_blas_int *incy,
     const double *c,
     const double *s
 ) {
@@ -375,11 +375,11 @@ extern "C" void drot_(
 }
 
 extern "C" void drotm_(
-    const reidblas_blas_int *n,
+    const compensated_blas_blas_int *n,
     double *x,
-    const reidblas_blas_int *incx,
+    const compensated_blas_blas_int *incx,
     double *y,
-    const reidblas_blas_int *incy,
+    const compensated_blas_blas_int *incy,
     const double *param
 ) {
     std::int64_t n_value = 0;
@@ -405,11 +405,11 @@ extern "C" void drotm_(
 }
 
 extern "C" void dswap_(
-    const reidblas_blas_int *n,
+    const compensated_blas_blas_int *n,
     double *x,
-    const reidblas_blas_int *incx,
+    const compensated_blas_blas_int *incx,
     double *y,
-    const reidblas_blas_int *incy
+    const compensated_blas_blas_int *incy
 ) {
     std::int64_t n_value = 0;
     const std::int64_t *n_ilp64 = nullptr;
@@ -434,10 +434,10 @@ extern "C" void dswap_(
 }
 
 extern "C" void dscal_(
-    const reidblas_blas_int *n,
+    const compensated_blas_blas_int *n,
     const double *alpha,
     double *x,
-    const reidblas_blas_int *incx
+    const compensated_blas_blas_int *incx
 ) {
     std::int64_t n_value = 0;
     const std::int64_t *n_ilp64 = nullptr;
@@ -456,11 +456,11 @@ extern "C" void dscal_(
 }
 
 extern "C" void dcopy_(
-    const reidblas_blas_int *n,
+    const compensated_blas_blas_int *n,
     const double *x,
-    const reidblas_blas_int *incx,
+    const compensated_blas_blas_int *incx,
     double *y,
-    const reidblas_blas_int *incy
+    const compensated_blas_blas_int *incy
 ) {
     std::int64_t n_value = 0;
     const std::int64_t *n_ilp64 = nullptr;
@@ -485,12 +485,12 @@ extern "C" void dcopy_(
 }
 
 extern "C" void daxpy_(
-    const reidblas_blas_int *n,
+    const compensated_blas_blas_int *n,
     const double *alpha,
     const double *x,
-    const reidblas_blas_int *incx,
+    const compensated_blas_blas_int *incx,
     double *y,
-    const reidblas_blas_int *incy
+    const compensated_blas_blas_int *incy
 ) {
     std::int64_t n_value = 0;
     const std::int64_t *n_ilp64 = nullptr;
@@ -515,11 +515,11 @@ extern "C" void daxpy_(
 }
 
 extern "C" double ddot_(
-    const reidblas_blas_int *n,
+    const compensated_blas_blas_int *n,
     const double *x,
-    const reidblas_blas_int *incx,
+    const compensated_blas_blas_int *incx,
     const double *y,
-    const reidblas_blas_int *incy
+    const compensated_blas_blas_int *incy
 ) {
     std::int64_t n_value = 0;
     const std::int64_t *n_ilp64 = nullptr;
@@ -544,11 +544,11 @@ extern "C" double ddot_(
 }
 
 extern "C" double dsdot_(
-    const reidblas_blas_int *n,
+    const compensated_blas_blas_int *n,
     const float *x,
-    const reidblas_blas_int *incx,
+    const compensated_blas_blas_int *incx,
     const float *y,
-    const reidblas_blas_int *incy
+    const compensated_blas_blas_int *incy
 ) {
     std::int64_t n_value = 0;
     const std::int64_t *n_ilp64 = nullptr;
@@ -573,9 +573,9 @@ extern "C" double dsdot_(
 }
 
 extern "C" double dnrm2_(
-    const reidblas_blas_int *n,
+    const compensated_blas_blas_int *n,
     const double *x,
-    const reidblas_blas_int *incx
+    const compensated_blas_blas_int *incx
 ) {
     std::int64_t n_value = 0;
     const std::int64_t *n_ilp64 = nullptr;
@@ -594,9 +594,9 @@ extern "C" double dnrm2_(
 }
 
 extern "C" double dasum_(
-    const reidblas_blas_int *n,
+    const compensated_blas_blas_int *n,
     const double *x,
-    const reidblas_blas_int *incx
+    const compensated_blas_blas_int *incx
 ) {
     std::int64_t n_value = 0;
     const std::int64_t *n_ilp64 = nullptr;
@@ -614,10 +614,10 @@ extern "C" double dasum_(
     return backend().dasum(n_ilp64, x, incx_ilp64);
 }
 
-extern "C" reidblas_blas_int idamax_(
-    const reidblas_blas_int *n,
+extern "C" compensated_blas_blas_int idamax_(
+    const compensated_blas_blas_int *n,
     const double *x,
-    const reidblas_blas_int *incx
+    const compensated_blas_blas_int *incx
 ) {
     std::int64_t n_value = 0;
     const std::int64_t *n_ilp64 = nullptr;
@@ -633,24 +633,24 @@ extern "C" reidblas_blas_int idamax_(
     }
 
     auto result = backend().idamax(n_ilp64, x, incx_ilp64);
-    return static_cast<reidblas_blas_int>(result);
+    return static_cast<compensated_blas_blas_int>(result);
 }
 
 extern "C" void crotg_(
-    reidblas_complex_float *a,
-    const reidblas_complex_float *b,
+    compensated_blas_complex_float *a,
+    const compensated_blas_complex_float *b,
     float *c,
-    reidblas_complex_float *s
+    compensated_blas_complex_float *s
 ) {
     backend().crotg(a, b, c, s);
 }
 
 extern "C" void csrot_(
-    const reidblas_blas_int *n,
-    reidblas_complex_float *x,
-    const reidblas_blas_int *incx,
-    reidblas_complex_float *y,
-    const reidblas_blas_int *incy,
+    const compensated_blas_blas_int *n,
+    compensated_blas_complex_float *x,
+    const compensated_blas_blas_int *incx,
+    compensated_blas_complex_float *y,
+    const compensated_blas_blas_int *incy,
     const float *c,
     const float *s
 ) {
@@ -677,10 +677,10 @@ extern "C" void csrot_(
 }
 
 extern "C" void csscal_(
-    const reidblas_blas_int *n,
+    const compensated_blas_blas_int *n,
     const float *alpha,
-    reidblas_complex_float *x,
-    const reidblas_blas_int *incx
+    compensated_blas_complex_float *x,
+    const compensated_blas_blas_int *incx
 ) {
     std::int64_t n_value = 0;
     const std::int64_t *n_ilp64 = nullptr;
@@ -699,10 +699,10 @@ extern "C" void csscal_(
 }
 
 extern "C" void cscal_(
-    const reidblas_blas_int *n,
-    const reidblas_complex_float *alpha,
-    reidblas_complex_float *x,
-    const reidblas_blas_int *incx
+    const compensated_blas_blas_int *n,
+    const compensated_blas_complex_float *alpha,
+    compensated_blas_complex_float *x,
+    const compensated_blas_blas_int *incx
 ) {
     std::int64_t n_value = 0;
     const std::int64_t *n_ilp64 = nullptr;
@@ -721,11 +721,11 @@ extern "C" void cscal_(
 }
 
 extern "C" void cswap_(
-    const reidblas_blas_int *n,
-    reidblas_complex_float *x,
-    const reidblas_blas_int *incx,
-    reidblas_complex_float *y,
-    const reidblas_blas_int *incy
+    const compensated_blas_blas_int *n,
+    compensated_blas_complex_float *x,
+    const compensated_blas_blas_int *incx,
+    compensated_blas_complex_float *y,
+    const compensated_blas_blas_int *incy
 ) {
     std::int64_t n_value = 0;
     const std::int64_t *n_ilp64 = nullptr;
@@ -750,11 +750,11 @@ extern "C" void cswap_(
 }
 
 extern "C" void ccopy_(
-    const reidblas_blas_int *n,
-    const reidblas_complex_float *x,
-    const reidblas_blas_int *incx,
-    reidblas_complex_float *y,
-    const reidblas_blas_int *incy
+    const compensated_blas_blas_int *n,
+    const compensated_blas_complex_float *x,
+    const compensated_blas_blas_int *incx,
+    compensated_blas_complex_float *y,
+    const compensated_blas_blas_int *incy
 ) {
     std::int64_t n_value = 0;
     const std::int64_t *n_ilp64 = nullptr;
@@ -779,12 +779,12 @@ extern "C" void ccopy_(
 }
 
 extern "C" void caxpy_(
-    const reidblas_blas_int *n,
-    const reidblas_complex_float *alpha,
-    const reidblas_complex_float *x,
-    const reidblas_blas_int *incx,
-    reidblas_complex_float *y,
-    const reidblas_blas_int *incy
+    const compensated_blas_blas_int *n,
+    const compensated_blas_complex_float *alpha,
+    const compensated_blas_complex_float *x,
+    const compensated_blas_blas_int *incx,
+    compensated_blas_complex_float *y,
+    const compensated_blas_blas_int *incy
 ) {
     std::int64_t n_value = 0;
     const std::int64_t *n_ilp64 = nullptr;
@@ -808,12 +808,12 @@ extern "C" void caxpy_(
     backend().caxpy(n_ilp64, alpha, x, incx_ilp64, y, incy_ilp64);
 }
 
-extern "C" reidblas_complex_float cdotu_(
-    const reidblas_blas_int *n,
-    const reidblas_complex_float *x,
-    const reidblas_blas_int *incx,
-    const reidblas_complex_float *y,
-    const reidblas_blas_int *incy
+extern "C" compensated_blas_complex_float cdotu_(
+    const compensated_blas_blas_int *n,
+    const compensated_blas_complex_float *x,
+    const compensated_blas_blas_int *incx,
+    const compensated_blas_complex_float *y,
+    const compensated_blas_blas_int *incy
 ) {
     std::int64_t n_value = 0;
     const std::int64_t *n_ilp64 = nullptr;
@@ -837,12 +837,12 @@ extern "C" reidblas_complex_float cdotu_(
     return backend().cdotu(n_ilp64, x, incx_ilp64, y, incy_ilp64);
 }
 
-extern "C" reidblas_complex_float cdotc_(
-    const reidblas_blas_int *n,
-    const reidblas_complex_float *x,
-    const reidblas_blas_int *incx,
-    const reidblas_complex_float *y,
-    const reidblas_blas_int *incy
+extern "C" compensated_blas_complex_float cdotc_(
+    const compensated_blas_blas_int *n,
+    const compensated_blas_complex_float *x,
+    const compensated_blas_blas_int *incx,
+    const compensated_blas_complex_float *y,
+    const compensated_blas_blas_int *incy
 ) {
     std::int64_t n_value = 0;
     const std::int64_t *n_ilp64 = nullptr;
@@ -867,9 +867,9 @@ extern "C" reidblas_complex_float cdotc_(
 }
 
 extern "C" float scnrm2_(
-    const reidblas_blas_int *n,
-    const reidblas_complex_float *x,
-    const reidblas_blas_int *incx
+    const compensated_blas_blas_int *n,
+    const compensated_blas_complex_float *x,
+    const compensated_blas_blas_int *incx
 ) {
     std::int64_t n_value = 0;
     const std::int64_t *n_ilp64 = nullptr;
@@ -888,9 +888,9 @@ extern "C" float scnrm2_(
 }
 
 extern "C" float scasum_(
-    const reidblas_blas_int *n,
-    const reidblas_complex_float *x,
-    const reidblas_blas_int *incx
+    const compensated_blas_blas_int *n,
+    const compensated_blas_complex_float *x,
+    const compensated_blas_blas_int *incx
 ) {
     std::int64_t n_value = 0;
     const std::int64_t *n_ilp64 = nullptr;
@@ -908,10 +908,10 @@ extern "C" float scasum_(
     return backend().scasum(n_ilp64, x, incx_ilp64);
 }
 
-extern "C" reidblas_blas_int icamax_(
-    const reidblas_blas_int *n,
-    const reidblas_complex_float *x,
-    const reidblas_blas_int *incx
+extern "C" compensated_blas_blas_int icamax_(
+    const compensated_blas_blas_int *n,
+    const compensated_blas_complex_float *x,
+    const compensated_blas_blas_int *incx
 ) {
     std::int64_t n_value = 0;
     const std::int64_t *n_ilp64 = nullptr;
@@ -927,24 +927,24 @@ extern "C" reidblas_blas_int icamax_(
     }
 
     auto result = backend().icamax(n_ilp64, x, incx_ilp64);
-    return static_cast<reidblas_blas_int>(result);
+    return static_cast<compensated_blas_blas_int>(result);
 }
 
 extern "C" void zrotg_(
-    reidblas_complex_double *a,
-    const reidblas_complex_double *b,
+    compensated_blas_complex_double *a,
+    const compensated_blas_complex_double *b,
     double *c,
-    reidblas_complex_double *s
+    compensated_blas_complex_double *s
 ) {
     backend().zrotg(a, b, c, s);
 }
 
 extern "C" void zdrot_(
-    const reidblas_blas_int *n,
-    reidblas_complex_double *x,
-    const reidblas_blas_int *incx,
-    reidblas_complex_double *y,
-    const reidblas_blas_int *incy,
+    const compensated_blas_blas_int *n,
+    compensated_blas_complex_double *x,
+    const compensated_blas_blas_int *incx,
+    compensated_blas_complex_double *y,
+    const compensated_blas_blas_int *incy,
     const double *c,
     const double *s
 ) {
@@ -971,10 +971,10 @@ extern "C" void zdrot_(
 }
 
 extern "C" void zdscal_(
-    const reidblas_blas_int *n,
+    const compensated_blas_blas_int *n,
     const double *alpha,
-    reidblas_complex_double *x,
-    const reidblas_blas_int *incx
+    compensated_blas_complex_double *x,
+    const compensated_blas_blas_int *incx
 ) {
     std::int64_t n_value = 0;
     const std::int64_t *n_ilp64 = nullptr;
@@ -993,10 +993,10 @@ extern "C" void zdscal_(
 }
 
 extern "C" void zscal_(
-    const reidblas_blas_int *n,
-    const reidblas_complex_double *alpha,
-    reidblas_complex_double *x,
-    const reidblas_blas_int *incx
+    const compensated_blas_blas_int *n,
+    const compensated_blas_complex_double *alpha,
+    compensated_blas_complex_double *x,
+    const compensated_blas_blas_int *incx
 ) {
     std::int64_t n_value = 0;
     const std::int64_t *n_ilp64 = nullptr;
@@ -1015,11 +1015,11 @@ extern "C" void zscal_(
 }
 
 extern "C" void zswap_(
-    const reidblas_blas_int *n,
-    reidblas_complex_double *x,
-    const reidblas_blas_int *incx,
-    reidblas_complex_double *y,
-    const reidblas_blas_int *incy
+    const compensated_blas_blas_int *n,
+    compensated_blas_complex_double *x,
+    const compensated_blas_blas_int *incx,
+    compensated_blas_complex_double *y,
+    const compensated_blas_blas_int *incy
 ) {
     std::int64_t n_value = 0;
     const std::int64_t *n_ilp64 = nullptr;
@@ -1044,11 +1044,11 @@ extern "C" void zswap_(
 }
 
 extern "C" void zcopy_(
-    const reidblas_blas_int *n,
-    const reidblas_complex_double *x,
-    const reidblas_blas_int *incx,
-    reidblas_complex_double *y,
-    const reidblas_blas_int *incy
+    const compensated_blas_blas_int *n,
+    const compensated_blas_complex_double *x,
+    const compensated_blas_blas_int *incx,
+    compensated_blas_complex_double *y,
+    const compensated_blas_blas_int *incy
 ) {
     std::int64_t n_value = 0;
     const std::int64_t *n_ilp64 = nullptr;
@@ -1073,12 +1073,12 @@ extern "C" void zcopy_(
 }
 
 extern "C" void zaxpy_(
-    const reidblas_blas_int *n,
-    const reidblas_complex_double *alpha,
-    const reidblas_complex_double *x,
-    const reidblas_blas_int *incx,
-    reidblas_complex_double *y,
-    const reidblas_blas_int *incy
+    const compensated_blas_blas_int *n,
+    const compensated_blas_complex_double *alpha,
+    const compensated_blas_complex_double *x,
+    const compensated_blas_blas_int *incx,
+    compensated_blas_complex_double *y,
+    const compensated_blas_blas_int *incy
 ) {
     std::int64_t n_value = 0;
     const std::int64_t *n_ilp64 = nullptr;
@@ -1102,12 +1102,12 @@ extern "C" void zaxpy_(
     backend().zaxpy(n_ilp64, alpha, x, incx_ilp64, y, incy_ilp64);
 }
 
-extern "C" reidblas_complex_double zdotu_(
-    const reidblas_blas_int *n,
-    const reidblas_complex_double *x,
-    const reidblas_blas_int *incx,
-    const reidblas_complex_double *y,
-    const reidblas_blas_int *incy
+extern "C" compensated_blas_complex_double zdotu_(
+    const compensated_blas_blas_int *n,
+    const compensated_blas_complex_double *x,
+    const compensated_blas_blas_int *incx,
+    const compensated_blas_complex_double *y,
+    const compensated_blas_blas_int *incy
 ) {
     std::int64_t n_value = 0;
     const std::int64_t *n_ilp64 = nullptr;
@@ -1131,12 +1131,12 @@ extern "C" reidblas_complex_double zdotu_(
     return backend().zdotu(n_ilp64, x, incx_ilp64, y, incy_ilp64);
 }
 
-extern "C" reidblas_complex_double zdotc_(
-    const reidblas_blas_int *n,
-    const reidblas_complex_double *x,
-    const reidblas_blas_int *incx,
-    const reidblas_complex_double *y,
-    const reidblas_blas_int *incy
+extern "C" compensated_blas_complex_double zdotc_(
+    const compensated_blas_blas_int *n,
+    const compensated_blas_complex_double *x,
+    const compensated_blas_blas_int *incx,
+    const compensated_blas_complex_double *y,
+    const compensated_blas_blas_int *incy
 ) {
     std::int64_t n_value = 0;
     const std::int64_t *n_ilp64 = nullptr;
@@ -1161,9 +1161,9 @@ extern "C" reidblas_complex_double zdotc_(
 }
 
 extern "C" double dznrm2_(
-    const reidblas_blas_int *n,
-    const reidblas_complex_double *x,
-    const reidblas_blas_int *incx
+    const compensated_blas_blas_int *n,
+    const compensated_blas_complex_double *x,
+    const compensated_blas_blas_int *incx
 ) {
     std::int64_t n_value = 0;
     const std::int64_t *n_ilp64 = nullptr;
@@ -1182,9 +1182,9 @@ extern "C" double dznrm2_(
 }
 
 extern "C" double dzasum_(
-    const reidblas_blas_int *n,
-    const reidblas_complex_double *x,
-    const reidblas_blas_int *incx
+    const compensated_blas_blas_int *n,
+    const compensated_blas_complex_double *x,
+    const compensated_blas_blas_int *incx
 ) {
     std::int64_t n_value = 0;
     const std::int64_t *n_ilp64 = nullptr;
@@ -1202,10 +1202,10 @@ extern "C" double dzasum_(
     return backend().dzasum(n_ilp64, x, incx_ilp64);
 }
 
-extern "C" reidblas_blas_int izamax_(
-    const reidblas_blas_int *n,
-    const reidblas_complex_double *x,
-    const reidblas_blas_int *incx
+extern "C" compensated_blas_blas_int izamax_(
+    const compensated_blas_blas_int *n,
+    const compensated_blas_complex_double *x,
+    const compensated_blas_blas_int *incx
 ) {
     std::int64_t n_value = 0;
     const std::int64_t *n_ilp64 = nullptr;
@@ -1221,21 +1221,21 @@ extern "C" reidblas_blas_int izamax_(
     }
 
     auto result = backend().izamax(n_ilp64, x, incx_ilp64);
-    return static_cast<reidblas_blas_int>(result);
+    return static_cast<compensated_blas_blas_int>(result);
 }
 
 extern "C" void sgemv_(
     const char *trans,
-    const reidblas_blas_int *m,
-    const reidblas_blas_int *n,
+    const compensated_blas_blas_int *m,
+    const compensated_blas_blas_int *n,
     const float *alpha,
     const float *a,
-    const reidblas_blas_int *lda,
+    const compensated_blas_blas_int *lda,
     const float *x,
-    const reidblas_blas_int *incx,
+    const compensated_blas_blas_int *incx,
     const float *beta,
     float *y,
-    const reidblas_blas_int *incy
+    const compensated_blas_blas_int *incy
 ) {
     std::int64_t m_value = 0;
     const std::int64_t *m_ilp64 = nullptr;
@@ -1273,18 +1273,18 @@ extern "C" void sgemv_(
 
 extern "C" void sgbmv_(
     const char *trans,
-    const reidblas_blas_int *m,
-    const reidblas_blas_int *n,
-    const reidblas_blas_int *kl,
-    const reidblas_blas_int *ku,
+    const compensated_blas_blas_int *m,
+    const compensated_blas_blas_int *n,
+    const compensated_blas_blas_int *kl,
+    const compensated_blas_blas_int *ku,
     const float *alpha,
     const float *a,
-    const reidblas_blas_int *lda,
+    const compensated_blas_blas_int *lda,
     const float *x,
-    const reidblas_blas_int *incx,
+    const compensated_blas_blas_int *incx,
     const float *beta,
     float *y,
-    const reidblas_blas_int *incy
+    const compensated_blas_blas_int *incy
 ) {
     std::int64_t m_value = 0;
     const std::int64_t *m_ilp64 = nullptr;
@@ -1334,15 +1334,15 @@ extern "C" void sgbmv_(
 
 extern "C" void ssymv_(
     const char *uplo,
-    const reidblas_blas_int *n,
+    const compensated_blas_blas_int *n,
     const float *alpha,
     const float *a,
-    const reidblas_blas_int *lda,
+    const compensated_blas_blas_int *lda,
     const float *x,
-    const reidblas_blas_int *incx,
+    const compensated_blas_blas_int *incx,
     const float *beta,
     float *y,
-    const reidblas_blas_int *incy
+    const compensated_blas_blas_int *incy
 ) {
     std::int64_t n_value = 0;
     const std::int64_t *n_ilp64 = nullptr;
@@ -1374,16 +1374,16 @@ extern "C" void ssymv_(
 
 extern "C" void ssbmv_(
     const char *uplo,
-    const reidblas_blas_int *n,
-    const reidblas_blas_int *k,
+    const compensated_blas_blas_int *n,
+    const compensated_blas_blas_int *k,
     const float *alpha,
     const float *a,
-    const reidblas_blas_int *lda,
+    const compensated_blas_blas_int *lda,
     const float *x,
-    const reidblas_blas_int *incx,
+    const compensated_blas_blas_int *incx,
     const float *beta,
     float *y,
-    const reidblas_blas_int *incy
+    const compensated_blas_blas_int *incy
 ) {
     std::int64_t n_value = 0;
     const std::int64_t *n_ilp64 = nullptr;
@@ -1421,14 +1421,14 @@ extern "C" void ssbmv_(
 
 extern "C" void sspmv_(
     const char *uplo,
-    const reidblas_blas_int *n,
+    const compensated_blas_blas_int *n,
     const float *alpha,
     const float *ap,
     const float *x,
-    const reidblas_blas_int *incx,
+    const compensated_blas_blas_int *incx,
     const float *beta,
     float *y,
-    const reidblas_blas_int *incy
+    const compensated_blas_blas_int *incy
 ) {
     std::int64_t n_value = 0;
     const std::int64_t *n_ilp64 = nullptr;
@@ -1456,11 +1456,11 @@ extern "C" void strmv_(
     const char *uplo,
     const char *trans,
     const char *diag,
-    const reidblas_blas_int *n,
+    const compensated_blas_blas_int *n,
     const float *a,
-    const reidblas_blas_int *lda,
+    const compensated_blas_blas_int *lda,
     float *x,
-    const reidblas_blas_int *incx
+    const compensated_blas_blas_int *incx
 ) {
     std::int64_t n_value = 0;
     const std::int64_t *n_ilp64 = nullptr;
@@ -1488,12 +1488,12 @@ extern "C" void stbmv_(
     const char *uplo,
     const char *trans,
     const char *diag,
-    const reidblas_blas_int *n,
-    const reidblas_blas_int *k,
+    const compensated_blas_blas_int *n,
+    const compensated_blas_blas_int *k,
     const float *a,
-    const reidblas_blas_int *lda,
+    const compensated_blas_blas_int *lda,
     float *x,
-    const reidblas_blas_int *incx
+    const compensated_blas_blas_int *incx
 ) {
     std::int64_t n_value = 0;
     const std::int64_t *n_ilp64 = nullptr;
@@ -1527,10 +1527,10 @@ extern "C" void stpmv_(
     const char *uplo,
     const char *trans,
     const char *diag,
-    const reidblas_blas_int *n,
+    const compensated_blas_blas_int *n,
     const float *ap,
     float *x,
-    const reidblas_blas_int *incx
+    const compensated_blas_blas_int *incx
 ) {
     std::int64_t n_value = 0;
     const std::int64_t *n_ilp64 = nullptr;
@@ -1552,11 +1552,11 @@ extern "C" void strsv_(
     const char *uplo,
     const char *trans,
     const char *diag,
-    const reidblas_blas_int *n,
+    const compensated_blas_blas_int *n,
     const float *a,
-    const reidblas_blas_int *lda,
+    const compensated_blas_blas_int *lda,
     float *x,
-    const reidblas_blas_int *incx
+    const compensated_blas_blas_int *incx
 ) {
     std::int64_t n_value = 0;
     const std::int64_t *n_ilp64 = nullptr;
@@ -1584,12 +1584,12 @@ extern "C" void stbsv_(
     const char *uplo,
     const char *trans,
     const char *diag,
-    const reidblas_blas_int *n,
-    const reidblas_blas_int *k,
+    const compensated_blas_blas_int *n,
+    const compensated_blas_blas_int *k,
     const float *a,
-    const reidblas_blas_int *lda,
+    const compensated_blas_blas_int *lda,
     float *x,
-    const reidblas_blas_int *incx
+    const compensated_blas_blas_int *incx
 ) {
     std::int64_t n_value = 0;
     const std::int64_t *n_ilp64 = nullptr;
@@ -1623,10 +1623,10 @@ extern "C" void stpsv_(
     const char *uplo,
     const char *trans,
     const char *diag,
-    const reidblas_blas_int *n,
+    const compensated_blas_blas_int *n,
     const float *ap,
     float *x,
-    const reidblas_blas_int *incx
+    const compensated_blas_blas_int *incx
 ) {
     std::int64_t n_value = 0;
     const std::int64_t *n_ilp64 = nullptr;
@@ -1645,15 +1645,15 @@ extern "C" void stpsv_(
 }
 
 extern "C" void sger_(
-    const reidblas_blas_int *m,
-    const reidblas_blas_int *n,
+    const compensated_blas_blas_int *m,
+    const compensated_blas_blas_int *n,
     const float *alpha,
     const float *x,
-    const reidblas_blas_int *incx,
+    const compensated_blas_blas_int *incx,
     const float *y,
-    const reidblas_blas_int *incy,
+    const compensated_blas_blas_int *incy,
     float *a,
-    const reidblas_blas_int *lda
+    const compensated_blas_blas_int *lda
 ) {
     std::int64_t m_value = 0;
     const std::int64_t *m_ilp64 = nullptr;
@@ -1691,10 +1691,10 @@ extern "C" void sger_(
 
 extern "C" void sspr_(
     const char *uplo,
-    const reidblas_blas_int *n,
+    const compensated_blas_blas_int *n,
     const float *alpha,
     const float *x,
-    const reidblas_blas_int *incx,
+    const compensated_blas_blas_int *incx,
     float *ap
 ) {
     std::int64_t n_value = 0;
@@ -1715,12 +1715,12 @@ extern "C" void sspr_(
 
 extern "C" void ssyr_(
     const char *uplo,
-    const reidblas_blas_int *n,
+    const compensated_blas_blas_int *n,
     const float *alpha,
     const float *x,
-    const reidblas_blas_int *incx,
+    const compensated_blas_blas_int *incx,
     float *a,
-    const reidblas_blas_int *lda
+    const compensated_blas_blas_int *lda
 ) {
     std::int64_t n_value = 0;
     const std::int64_t *n_ilp64 = nullptr;
@@ -1746,12 +1746,12 @@ extern "C" void ssyr_(
 
 extern "C" void sspr2_(
     const char *uplo,
-    const reidblas_blas_int *n,
+    const compensated_blas_blas_int *n,
     const float *alpha,
     const float *x,
-    const reidblas_blas_int *incx,
+    const compensated_blas_blas_int *incx,
     const float *y,
-    const reidblas_blas_int *incy,
+    const compensated_blas_blas_int *incy,
     float *ap
 ) {
     std::int64_t n_value = 0;
@@ -1778,14 +1778,14 @@ extern "C" void sspr2_(
 
 extern "C" void ssyr2_(
     const char *uplo,
-    const reidblas_blas_int *n,
+    const compensated_blas_blas_int *n,
     const float *alpha,
     const float *x,
-    const reidblas_blas_int *incx,
+    const compensated_blas_blas_int *incx,
     const float *y,
-    const reidblas_blas_int *incy,
+    const compensated_blas_blas_int *incy,
     float *a,
-    const reidblas_blas_int *lda
+    const compensated_blas_blas_int *lda
 ) {
     std::int64_t n_value = 0;
     const std::int64_t *n_ilp64 = nullptr;
@@ -1817,16 +1817,16 @@ extern "C" void ssyr2_(
 
 extern "C" void dgemv_(
     const char *trans,
-    const reidblas_blas_int *m,
-    const reidblas_blas_int *n,
+    const compensated_blas_blas_int *m,
+    const compensated_blas_blas_int *n,
     const double *alpha,
     const double *a,
-    const reidblas_blas_int *lda,
+    const compensated_blas_blas_int *lda,
     const double *x,
-    const reidblas_blas_int *incx,
+    const compensated_blas_blas_int *incx,
     const double *beta,
     double *y,
-    const reidblas_blas_int *incy
+    const compensated_blas_blas_int *incy
 ) {
     std::int64_t m_value = 0;
     const std::int64_t *m_ilp64 = nullptr;
@@ -1864,18 +1864,18 @@ extern "C" void dgemv_(
 
 extern "C" void dgbmv_(
     const char *trans,
-    const reidblas_blas_int *m,
-    const reidblas_blas_int *n,
-    const reidblas_blas_int *kl,
-    const reidblas_blas_int *ku,
+    const compensated_blas_blas_int *m,
+    const compensated_blas_blas_int *n,
+    const compensated_blas_blas_int *kl,
+    const compensated_blas_blas_int *ku,
     const double *alpha,
     const double *a,
-    const reidblas_blas_int *lda,
+    const compensated_blas_blas_int *lda,
     const double *x,
-    const reidblas_blas_int *incx,
+    const compensated_blas_blas_int *incx,
     const double *beta,
     double *y,
-    const reidblas_blas_int *incy
+    const compensated_blas_blas_int *incy
 ) {
     std::int64_t m_value = 0;
     const std::int64_t *m_ilp64 = nullptr;
@@ -1925,15 +1925,15 @@ extern "C" void dgbmv_(
 
 extern "C" void dsymv_(
     const char *uplo,
-    const reidblas_blas_int *n,
+    const compensated_blas_blas_int *n,
     const double *alpha,
     const double *a,
-    const reidblas_blas_int *lda,
+    const compensated_blas_blas_int *lda,
     const double *x,
-    const reidblas_blas_int *incx,
+    const compensated_blas_blas_int *incx,
     const double *beta,
     double *y,
-    const reidblas_blas_int *incy
+    const compensated_blas_blas_int *incy
 ) {
     std::int64_t n_value = 0;
     const std::int64_t *n_ilp64 = nullptr;
@@ -1965,16 +1965,16 @@ extern "C" void dsymv_(
 
 extern "C" void dsbmv_(
     const char *uplo,
-    const reidblas_blas_int *n,
-    const reidblas_blas_int *k,
+    const compensated_blas_blas_int *n,
+    const compensated_blas_blas_int *k,
     const double *alpha,
     const double *a,
-    const reidblas_blas_int *lda,
+    const compensated_blas_blas_int *lda,
     const double *x,
-    const reidblas_blas_int *incx,
+    const compensated_blas_blas_int *incx,
     const double *beta,
     double *y,
-    const reidblas_blas_int *incy
+    const compensated_blas_blas_int *incy
 ) {
     std::int64_t n_value = 0;
     const std::int64_t *n_ilp64 = nullptr;
@@ -2012,14 +2012,14 @@ extern "C" void dsbmv_(
 
 extern "C" void dspmv_(
     const char *uplo,
-    const reidblas_blas_int *n,
+    const compensated_blas_blas_int *n,
     const double *alpha,
     const double *ap,
     const double *x,
-    const reidblas_blas_int *incx,
+    const compensated_blas_blas_int *incx,
     const double *beta,
     double *y,
-    const reidblas_blas_int *incy
+    const compensated_blas_blas_int *incy
 ) {
     std::int64_t n_value = 0;
     const std::int64_t *n_ilp64 = nullptr;
@@ -2047,11 +2047,11 @@ extern "C" void dtrmv_(
     const char *uplo,
     const char *trans,
     const char *diag,
-    const reidblas_blas_int *n,
+    const compensated_blas_blas_int *n,
     const double *a,
-    const reidblas_blas_int *lda,
+    const compensated_blas_blas_int *lda,
     double *x,
-    const reidblas_blas_int *incx
+    const compensated_blas_blas_int *incx
 ) {
     std::int64_t n_value = 0;
     const std::int64_t *n_ilp64 = nullptr;
@@ -2079,12 +2079,12 @@ extern "C" void dtbmv_(
     const char *uplo,
     const char *trans,
     const char *diag,
-    const reidblas_blas_int *n,
-    const reidblas_blas_int *k,
+    const compensated_blas_blas_int *n,
+    const compensated_blas_blas_int *k,
     const double *a,
-    const reidblas_blas_int *lda,
+    const compensated_blas_blas_int *lda,
     double *x,
-    const reidblas_blas_int *incx
+    const compensated_blas_blas_int *incx
 ) {
     std::int64_t n_value = 0;
     const std::int64_t *n_ilp64 = nullptr;
@@ -2118,10 +2118,10 @@ extern "C" void dtpmv_(
     const char *uplo,
     const char *trans,
     const char *diag,
-    const reidblas_blas_int *n,
+    const compensated_blas_blas_int *n,
     const double *ap,
     double *x,
-    const reidblas_blas_int *incx
+    const compensated_blas_blas_int *incx
 ) {
     std::int64_t n_value = 0;
     const std::int64_t *n_ilp64 = nullptr;
@@ -2143,11 +2143,11 @@ extern "C" void dtrsv_(
     const char *uplo,
     const char *trans,
     const char *diag,
-    const reidblas_blas_int *n,
+    const compensated_blas_blas_int *n,
     const double *a,
-    const reidblas_blas_int *lda,
+    const compensated_blas_blas_int *lda,
     double *x,
-    const reidblas_blas_int *incx
+    const compensated_blas_blas_int *incx
 ) {
     std::int64_t n_value = 0;
     const std::int64_t *n_ilp64 = nullptr;
@@ -2175,12 +2175,12 @@ extern "C" void dtbsv_(
     const char *uplo,
     const char *trans,
     const char *diag,
-    const reidblas_blas_int *n,
-    const reidblas_blas_int *k,
+    const compensated_blas_blas_int *n,
+    const compensated_blas_blas_int *k,
     const double *a,
-    const reidblas_blas_int *lda,
+    const compensated_blas_blas_int *lda,
     double *x,
-    const reidblas_blas_int *incx
+    const compensated_blas_blas_int *incx
 ) {
     std::int64_t n_value = 0;
     const std::int64_t *n_ilp64 = nullptr;
@@ -2214,10 +2214,10 @@ extern "C" void dtpsv_(
     const char *uplo,
     const char *trans,
     const char *diag,
-    const reidblas_blas_int *n,
+    const compensated_blas_blas_int *n,
     const double *ap,
     double *x,
-    const reidblas_blas_int *incx
+    const compensated_blas_blas_int *incx
 ) {
     std::int64_t n_value = 0;
     const std::int64_t *n_ilp64 = nullptr;
@@ -2236,15 +2236,15 @@ extern "C" void dtpsv_(
 }
 
 extern "C" void dger_(
-    const reidblas_blas_int *m,
-    const reidblas_blas_int *n,
+    const compensated_blas_blas_int *m,
+    const compensated_blas_blas_int *n,
     const double *alpha,
     const double *x,
-    const reidblas_blas_int *incx,
+    const compensated_blas_blas_int *incx,
     const double *y,
-    const reidblas_blas_int *incy,
+    const compensated_blas_blas_int *incy,
     double *a,
-    const reidblas_blas_int *lda
+    const compensated_blas_blas_int *lda
 ) {
     std::int64_t m_value = 0;
     const std::int64_t *m_ilp64 = nullptr;
@@ -2282,10 +2282,10 @@ extern "C" void dger_(
 
 extern "C" void dspr_(
     const char *uplo,
-    const reidblas_blas_int *n,
+    const compensated_blas_blas_int *n,
     const double *alpha,
     const double *x,
-    const reidblas_blas_int *incx,
+    const compensated_blas_blas_int *incx,
     double *ap
 ) {
     std::int64_t n_value = 0;
@@ -2306,12 +2306,12 @@ extern "C" void dspr_(
 
 extern "C" void dsyr_(
     const char *uplo,
-    const reidblas_blas_int *n,
+    const compensated_blas_blas_int *n,
     const double *alpha,
     const double *x,
-    const reidblas_blas_int *incx,
+    const compensated_blas_blas_int *incx,
     double *a,
-    const reidblas_blas_int *lda
+    const compensated_blas_blas_int *lda
 ) {
     std::int64_t n_value = 0;
     const std::int64_t *n_ilp64 = nullptr;
@@ -2337,12 +2337,12 @@ extern "C" void dsyr_(
 
 extern "C" void dspr2_(
     const char *uplo,
-    const reidblas_blas_int *n,
+    const compensated_blas_blas_int *n,
     const double *alpha,
     const double *x,
-    const reidblas_blas_int *incx,
+    const compensated_blas_blas_int *incx,
     const double *y,
-    const reidblas_blas_int *incy,
+    const compensated_blas_blas_int *incy,
     double *ap
 ) {
     std::int64_t n_value = 0;
@@ -2369,14 +2369,14 @@ extern "C" void dspr2_(
 
 extern "C" void dsyr2_(
     const char *uplo,
-    const reidblas_blas_int *n,
+    const compensated_blas_blas_int *n,
     const double *alpha,
     const double *x,
-    const reidblas_blas_int *incx,
+    const compensated_blas_blas_int *incx,
     const double *y,
-    const reidblas_blas_int *incy,
+    const compensated_blas_blas_int *incy,
     double *a,
-    const reidblas_blas_int *lda
+    const compensated_blas_blas_int *lda
 ) {
     std::int64_t n_value = 0;
     const std::int64_t *n_ilp64 = nullptr;
@@ -2408,16 +2408,16 @@ extern "C" void dsyr2_(
 
 extern "C" void cgemv_(
     const char *trans,
-    const reidblas_blas_int *m,
-    const reidblas_blas_int *n,
-    const reidblas_complex_float *alpha,
-    const reidblas_complex_float *a,
-    const reidblas_blas_int *lda,
-    const reidblas_complex_float *x,
-    const reidblas_blas_int *incx,
-    const reidblas_complex_float *beta,
-    reidblas_complex_float *y,
-    const reidblas_blas_int *incy
+    const compensated_blas_blas_int *m,
+    const compensated_blas_blas_int *n,
+    const compensated_blas_complex_float *alpha,
+    const compensated_blas_complex_float *a,
+    const compensated_blas_blas_int *lda,
+    const compensated_blas_complex_float *x,
+    const compensated_blas_blas_int *incx,
+    const compensated_blas_complex_float *beta,
+    compensated_blas_complex_float *y,
+    const compensated_blas_blas_int *incy
 ) {
     std::int64_t m_value = 0;
     const std::int64_t *m_ilp64 = nullptr;
@@ -2455,18 +2455,18 @@ extern "C" void cgemv_(
 
 extern "C" void cgbmv_(
     const char *trans,
-    const reidblas_blas_int *m,
-    const reidblas_blas_int *n,
-    const reidblas_blas_int *kl,
-    const reidblas_blas_int *ku,
-    const reidblas_complex_float *alpha,
-    const reidblas_complex_float *a,
-    const reidblas_blas_int *lda,
-    const reidblas_complex_float *x,
-    const reidblas_blas_int *incx,
-    const reidblas_complex_float *beta,
-    reidblas_complex_float *y,
-    const reidblas_blas_int *incy
+    const compensated_blas_blas_int *m,
+    const compensated_blas_blas_int *n,
+    const compensated_blas_blas_int *kl,
+    const compensated_blas_blas_int *ku,
+    const compensated_blas_complex_float *alpha,
+    const compensated_blas_complex_float *a,
+    const compensated_blas_blas_int *lda,
+    const compensated_blas_complex_float *x,
+    const compensated_blas_blas_int *incx,
+    const compensated_blas_complex_float *beta,
+    compensated_blas_complex_float *y,
+    const compensated_blas_blas_int *incy
 ) {
     std::int64_t m_value = 0;
     const std::int64_t *m_ilp64 = nullptr;
@@ -2516,15 +2516,15 @@ extern "C" void cgbmv_(
 
 extern "C" void chemv_(
     const char *uplo,
-    const reidblas_blas_int *n,
-    const reidblas_complex_float *alpha,
-    const reidblas_complex_float *a,
-    const reidblas_blas_int *lda,
-    const reidblas_complex_float *x,
-    const reidblas_blas_int *incx,
-    const reidblas_complex_float *beta,
-    reidblas_complex_float *y,
-    const reidblas_blas_int *incy
+    const compensated_blas_blas_int *n,
+    const compensated_blas_complex_float *alpha,
+    const compensated_blas_complex_float *a,
+    const compensated_blas_blas_int *lda,
+    const compensated_blas_complex_float *x,
+    const compensated_blas_blas_int *incx,
+    const compensated_blas_complex_float *beta,
+    compensated_blas_complex_float *y,
+    const compensated_blas_blas_int *incy
 ) {
     std::int64_t n_value = 0;
     const std::int64_t *n_ilp64 = nullptr;
@@ -2556,16 +2556,16 @@ extern "C" void chemv_(
 
 extern "C" void chbmv_(
     const char *uplo,
-    const reidblas_blas_int *n,
-    const reidblas_blas_int *k,
-    const reidblas_complex_float *alpha,
-    const reidblas_complex_float *a,
-    const reidblas_blas_int *lda,
-    const reidblas_complex_float *x,
-    const reidblas_blas_int *incx,
-    const reidblas_complex_float *beta,
-    reidblas_complex_float *y,
-    const reidblas_blas_int *incy
+    const compensated_blas_blas_int *n,
+    const compensated_blas_blas_int *k,
+    const compensated_blas_complex_float *alpha,
+    const compensated_blas_complex_float *a,
+    const compensated_blas_blas_int *lda,
+    const compensated_blas_complex_float *x,
+    const compensated_blas_blas_int *incx,
+    const compensated_blas_complex_float *beta,
+    compensated_blas_complex_float *y,
+    const compensated_blas_blas_int *incy
 ) {
     std::int64_t n_value = 0;
     const std::int64_t *n_ilp64 = nullptr;
@@ -2603,14 +2603,14 @@ extern "C" void chbmv_(
 
 extern "C" void chpmv_(
     const char *uplo,
-    const reidblas_blas_int *n,
-    const reidblas_complex_float *alpha,
-    const reidblas_complex_float *ap,
-    const reidblas_complex_float *x,
-    const reidblas_blas_int *incx,
-    const reidblas_complex_float *beta,
-    reidblas_complex_float *y,
-    const reidblas_blas_int *incy
+    const compensated_blas_blas_int *n,
+    const compensated_blas_complex_float *alpha,
+    const compensated_blas_complex_float *ap,
+    const compensated_blas_complex_float *x,
+    const compensated_blas_blas_int *incx,
+    const compensated_blas_complex_float *beta,
+    compensated_blas_complex_float *y,
+    const compensated_blas_blas_int *incy
 ) {
     std::int64_t n_value = 0;
     const std::int64_t *n_ilp64 = nullptr;
@@ -2638,11 +2638,11 @@ extern "C" void ctrmv_(
     const char *uplo,
     const char *trans,
     const char *diag,
-    const reidblas_blas_int *n,
-    const reidblas_complex_float *a,
-    const reidblas_blas_int *lda,
-    reidblas_complex_float *x,
-    const reidblas_blas_int *incx
+    const compensated_blas_blas_int *n,
+    const compensated_blas_complex_float *a,
+    const compensated_blas_blas_int *lda,
+    compensated_blas_complex_float *x,
+    const compensated_blas_blas_int *incx
 ) {
     std::int64_t n_value = 0;
     const std::int64_t *n_ilp64 = nullptr;
@@ -2670,12 +2670,12 @@ extern "C" void ctbmv_(
     const char *uplo,
     const char *trans,
     const char *diag,
-    const reidblas_blas_int *n,
-    const reidblas_blas_int *k,
-    const reidblas_complex_float *a,
-    const reidblas_blas_int *lda,
-    reidblas_complex_float *x,
-    const reidblas_blas_int *incx
+    const compensated_blas_blas_int *n,
+    const compensated_blas_blas_int *k,
+    const compensated_blas_complex_float *a,
+    const compensated_blas_blas_int *lda,
+    compensated_blas_complex_float *x,
+    const compensated_blas_blas_int *incx
 ) {
     std::int64_t n_value = 0;
     const std::int64_t *n_ilp64 = nullptr;
@@ -2709,10 +2709,10 @@ extern "C" void ctpmv_(
     const char *uplo,
     const char *trans,
     const char *diag,
-    const reidblas_blas_int *n,
-    const reidblas_complex_float *ap,
-    reidblas_complex_float *x,
-    const reidblas_blas_int *incx
+    const compensated_blas_blas_int *n,
+    const compensated_blas_complex_float *ap,
+    compensated_blas_complex_float *x,
+    const compensated_blas_blas_int *incx
 ) {
     std::int64_t n_value = 0;
     const std::int64_t *n_ilp64 = nullptr;
@@ -2734,11 +2734,11 @@ extern "C" void ctrsv_(
     const char *uplo,
     const char *trans,
     const char *diag,
-    const reidblas_blas_int *n,
-    const reidblas_complex_float *a,
-    const reidblas_blas_int *lda,
-    reidblas_complex_float *x,
-    const reidblas_blas_int *incx
+    const compensated_blas_blas_int *n,
+    const compensated_blas_complex_float *a,
+    const compensated_blas_blas_int *lda,
+    compensated_blas_complex_float *x,
+    const compensated_blas_blas_int *incx
 ) {
     std::int64_t n_value = 0;
     const std::int64_t *n_ilp64 = nullptr;
@@ -2766,12 +2766,12 @@ extern "C" void ctbsv_(
     const char *uplo,
     const char *trans,
     const char *diag,
-    const reidblas_blas_int *n,
-    const reidblas_blas_int *k,
-    const reidblas_complex_float *a,
-    const reidblas_blas_int *lda,
-    reidblas_complex_float *x,
-    const reidblas_blas_int *incx
+    const compensated_blas_blas_int *n,
+    const compensated_blas_blas_int *k,
+    const compensated_blas_complex_float *a,
+    const compensated_blas_blas_int *lda,
+    compensated_blas_complex_float *x,
+    const compensated_blas_blas_int *incx
 ) {
     std::int64_t n_value = 0;
     const std::int64_t *n_ilp64 = nullptr;
@@ -2805,10 +2805,10 @@ extern "C" void ctpsv_(
     const char *uplo,
     const char *trans,
     const char *diag,
-    const reidblas_blas_int *n,
-    const reidblas_complex_float *ap,
-    reidblas_complex_float *x,
-    const reidblas_blas_int *incx
+    const compensated_blas_blas_int *n,
+    const compensated_blas_complex_float *ap,
+    compensated_blas_complex_float *x,
+    const compensated_blas_blas_int *incx
 ) {
     std::int64_t n_value = 0;
     const std::int64_t *n_ilp64 = nullptr;
@@ -2827,15 +2827,15 @@ extern "C" void ctpsv_(
 }
 
 extern "C" void cgerc_(
-    const reidblas_blas_int *m,
-    const reidblas_blas_int *n,
-    const reidblas_complex_float *alpha,
-    const reidblas_complex_float *x,
-    const reidblas_blas_int *incx,
-    const reidblas_complex_float *y,
-    const reidblas_blas_int *incy,
-    reidblas_complex_float *a,
-    const reidblas_blas_int *lda
+    const compensated_blas_blas_int *m,
+    const compensated_blas_blas_int *n,
+    const compensated_blas_complex_float *alpha,
+    const compensated_blas_complex_float *x,
+    const compensated_blas_blas_int *incx,
+    const compensated_blas_complex_float *y,
+    const compensated_blas_blas_int *incy,
+    compensated_blas_complex_float *a,
+    const compensated_blas_blas_int *lda
 ) {
     std::int64_t m_value = 0;
     const std::int64_t *m_ilp64 = nullptr;
@@ -2872,15 +2872,15 @@ extern "C" void cgerc_(
 }
 
 extern "C" void cgeru_(
-    const reidblas_blas_int *m,
-    const reidblas_blas_int *n,
-    const reidblas_complex_float *alpha,
-    const reidblas_complex_float *x,
-    const reidblas_blas_int *incx,
-    const reidblas_complex_float *y,
-    const reidblas_blas_int *incy,
-    reidblas_complex_float *a,
-    const reidblas_blas_int *lda
+    const compensated_blas_blas_int *m,
+    const compensated_blas_blas_int *n,
+    const compensated_blas_complex_float *alpha,
+    const compensated_blas_complex_float *x,
+    const compensated_blas_blas_int *incx,
+    const compensated_blas_complex_float *y,
+    const compensated_blas_blas_int *incy,
+    compensated_blas_complex_float *a,
+    const compensated_blas_blas_int *lda
 ) {
     std::int64_t m_value = 0;
     const std::int64_t *m_ilp64 = nullptr;
@@ -2918,12 +2918,12 @@ extern "C" void cgeru_(
 
 extern "C" void cher_(
     const char *uplo,
-    const reidblas_blas_int *n,
+    const compensated_blas_blas_int *n,
     const float *alpha,
-    const reidblas_complex_float *x,
-    const reidblas_blas_int *incx,
-    reidblas_complex_float *a,
-    const reidblas_blas_int *lda
+    const compensated_blas_complex_float *x,
+    const compensated_blas_blas_int *incx,
+    compensated_blas_complex_float *a,
+    const compensated_blas_blas_int *lda
 ) {
     std::int64_t n_value = 0;
     const std::int64_t *n_ilp64 = nullptr;
@@ -2949,11 +2949,11 @@ extern "C" void cher_(
 
 extern "C" void chpr_(
     const char *uplo,
-    const reidblas_blas_int *n,
+    const compensated_blas_blas_int *n,
     const float *alpha,
-    const reidblas_complex_float *x,
-    const reidblas_blas_int *incx,
-    reidblas_complex_float *ap
+    const compensated_blas_complex_float *x,
+    const compensated_blas_blas_int *incx,
+    compensated_blas_complex_float *ap
 ) {
     std::int64_t n_value = 0;
     const std::int64_t *n_ilp64 = nullptr;
@@ -2973,14 +2973,14 @@ extern "C" void chpr_(
 
 extern "C" void cher2_(
     const char *uplo,
-    const reidblas_blas_int *n,
-    const reidblas_complex_float *alpha,
-    const reidblas_complex_float *x,
-    const reidblas_blas_int *incx,
-    const reidblas_complex_float *y,
-    const reidblas_blas_int *incy,
-    reidblas_complex_float *a,
-    const reidblas_blas_int *lda
+    const compensated_blas_blas_int *n,
+    const compensated_blas_complex_float *alpha,
+    const compensated_blas_complex_float *x,
+    const compensated_blas_blas_int *incx,
+    const compensated_blas_complex_float *y,
+    const compensated_blas_blas_int *incy,
+    compensated_blas_complex_float *a,
+    const compensated_blas_blas_int *lda
 ) {
     std::int64_t n_value = 0;
     const std::int64_t *n_ilp64 = nullptr;
@@ -3012,13 +3012,13 @@ extern "C" void cher2_(
 
 extern "C" void chpr2_(
     const char *uplo,
-    const reidblas_blas_int *n,
-    const reidblas_complex_float *alpha,
-    const reidblas_complex_float *x,
-    const reidblas_blas_int *incx,
-    const reidblas_complex_float *y,
-    const reidblas_blas_int *incy,
-    reidblas_complex_float *ap
+    const compensated_blas_blas_int *n,
+    const compensated_blas_complex_float *alpha,
+    const compensated_blas_complex_float *x,
+    const compensated_blas_blas_int *incx,
+    const compensated_blas_complex_float *y,
+    const compensated_blas_blas_int *incy,
+    compensated_blas_complex_float *ap
 ) {
     std::int64_t n_value = 0;
     const std::int64_t *n_ilp64 = nullptr;
@@ -3044,16 +3044,16 @@ extern "C" void chpr2_(
 
 extern "C" void zgemv_(
     const char *trans,
-    const reidblas_blas_int *m,
-    const reidblas_blas_int *n,
-    const reidblas_complex_double *alpha,
-    const reidblas_complex_double *a,
-    const reidblas_blas_int *lda,
-    const reidblas_complex_double *x,
-    const reidblas_blas_int *incx,
-    const reidblas_complex_double *beta,
-    reidblas_complex_double *y,
-    const reidblas_blas_int *incy
+    const compensated_blas_blas_int *m,
+    const compensated_blas_blas_int *n,
+    const compensated_blas_complex_double *alpha,
+    const compensated_blas_complex_double *a,
+    const compensated_blas_blas_int *lda,
+    const compensated_blas_complex_double *x,
+    const compensated_blas_blas_int *incx,
+    const compensated_blas_complex_double *beta,
+    compensated_blas_complex_double *y,
+    const compensated_blas_blas_int *incy
 ) {
     std::int64_t m_value = 0;
     const std::int64_t *m_ilp64 = nullptr;
@@ -3091,18 +3091,18 @@ extern "C" void zgemv_(
 
 extern "C" void zgbmv_(
     const char *trans,
-    const reidblas_blas_int *m,
-    const reidblas_blas_int *n,
-    const reidblas_blas_int *kl,
-    const reidblas_blas_int *ku,
-    const reidblas_complex_double *alpha,
-    const reidblas_complex_double *a,
-    const reidblas_blas_int *lda,
-    const reidblas_complex_double *x,
-    const reidblas_blas_int *incx,
-    const reidblas_complex_double *beta,
-    reidblas_complex_double *y,
-    const reidblas_blas_int *incy
+    const compensated_blas_blas_int *m,
+    const compensated_blas_blas_int *n,
+    const compensated_blas_blas_int *kl,
+    const compensated_blas_blas_int *ku,
+    const compensated_blas_complex_double *alpha,
+    const compensated_blas_complex_double *a,
+    const compensated_blas_blas_int *lda,
+    const compensated_blas_complex_double *x,
+    const compensated_blas_blas_int *incx,
+    const compensated_blas_complex_double *beta,
+    compensated_blas_complex_double *y,
+    const compensated_blas_blas_int *incy
 ) {
     std::int64_t m_value = 0;
     const std::int64_t *m_ilp64 = nullptr;
@@ -3152,15 +3152,15 @@ extern "C" void zgbmv_(
 
 extern "C" void zhemv_(
     const char *uplo,
-    const reidblas_blas_int *n,
-    const reidblas_complex_double *alpha,
-    const reidblas_complex_double *a,
-    const reidblas_blas_int *lda,
-    const reidblas_complex_double *x,
-    const reidblas_blas_int *incx,
-    const reidblas_complex_double *beta,
-    reidblas_complex_double *y,
-    const reidblas_blas_int *incy
+    const compensated_blas_blas_int *n,
+    const compensated_blas_complex_double *alpha,
+    const compensated_blas_complex_double *a,
+    const compensated_blas_blas_int *lda,
+    const compensated_blas_complex_double *x,
+    const compensated_blas_blas_int *incx,
+    const compensated_blas_complex_double *beta,
+    compensated_blas_complex_double *y,
+    const compensated_blas_blas_int *incy
 ) {
     std::int64_t n_value = 0;
     const std::int64_t *n_ilp64 = nullptr;
@@ -3192,16 +3192,16 @@ extern "C" void zhemv_(
 
 extern "C" void zhbmv_(
     const char *uplo,
-    const reidblas_blas_int *n,
-    const reidblas_blas_int *k,
-    const reidblas_complex_double *alpha,
-    const reidblas_complex_double *a,
-    const reidblas_blas_int *lda,
-    const reidblas_complex_double *x,
-    const reidblas_blas_int *incx,
-    const reidblas_complex_double *beta,
-    reidblas_complex_double *y,
-    const reidblas_blas_int *incy
+    const compensated_blas_blas_int *n,
+    const compensated_blas_blas_int *k,
+    const compensated_blas_complex_double *alpha,
+    const compensated_blas_complex_double *a,
+    const compensated_blas_blas_int *lda,
+    const compensated_blas_complex_double *x,
+    const compensated_blas_blas_int *incx,
+    const compensated_blas_complex_double *beta,
+    compensated_blas_complex_double *y,
+    const compensated_blas_blas_int *incy
 ) {
     std::int64_t n_value = 0;
     const std::int64_t *n_ilp64 = nullptr;
@@ -3239,14 +3239,14 @@ extern "C" void zhbmv_(
 
 extern "C" void zhpmv_(
     const char *uplo,
-    const reidblas_blas_int *n,
-    const reidblas_complex_double *alpha,
-    const reidblas_complex_double *ap,
-    const reidblas_complex_double *x,
-    const reidblas_blas_int *incx,
-    const reidblas_complex_double *beta,
-    reidblas_complex_double *y,
-    const reidblas_blas_int *incy
+    const compensated_blas_blas_int *n,
+    const compensated_blas_complex_double *alpha,
+    const compensated_blas_complex_double *ap,
+    const compensated_blas_complex_double *x,
+    const compensated_blas_blas_int *incx,
+    const compensated_blas_complex_double *beta,
+    compensated_blas_complex_double *y,
+    const compensated_blas_blas_int *incy
 ) {
     std::int64_t n_value = 0;
     const std::int64_t *n_ilp64 = nullptr;
@@ -3274,11 +3274,11 @@ extern "C" void ztrmv_(
     const char *uplo,
     const char *trans,
     const char *diag,
-    const reidblas_blas_int *n,
-    const reidblas_complex_double *a,
-    const reidblas_blas_int *lda,
-    reidblas_complex_double *x,
-    const reidblas_blas_int *incx
+    const compensated_blas_blas_int *n,
+    const compensated_blas_complex_double *a,
+    const compensated_blas_blas_int *lda,
+    compensated_blas_complex_double *x,
+    const compensated_blas_blas_int *incx
 ) {
     std::int64_t n_value = 0;
     const std::int64_t *n_ilp64 = nullptr;
@@ -3306,12 +3306,12 @@ extern "C" void ztbmv_(
     const char *uplo,
     const char *trans,
     const char *diag,
-    const reidblas_blas_int *n,
-    const reidblas_blas_int *k,
-    const reidblas_complex_double *a,
-    const reidblas_blas_int *lda,
-    reidblas_complex_double *x,
-    const reidblas_blas_int *incx
+    const compensated_blas_blas_int *n,
+    const compensated_blas_blas_int *k,
+    const compensated_blas_complex_double *a,
+    const compensated_blas_blas_int *lda,
+    compensated_blas_complex_double *x,
+    const compensated_blas_blas_int *incx
 ) {
     std::int64_t n_value = 0;
     const std::int64_t *n_ilp64 = nullptr;
@@ -3345,10 +3345,10 @@ extern "C" void ztpmv_(
     const char *uplo,
     const char *trans,
     const char *diag,
-    const reidblas_blas_int *n,
-    const reidblas_complex_double *ap,
-    reidblas_complex_double *x,
-    const reidblas_blas_int *incx
+    const compensated_blas_blas_int *n,
+    const compensated_blas_complex_double *ap,
+    compensated_blas_complex_double *x,
+    const compensated_blas_blas_int *incx
 ) {
     std::int64_t n_value = 0;
     const std::int64_t *n_ilp64 = nullptr;
@@ -3370,11 +3370,11 @@ extern "C" void ztrsv_(
     const char *uplo,
     const char *trans,
     const char *diag,
-    const reidblas_blas_int *n,
-    const reidblas_complex_double *a,
-    const reidblas_blas_int *lda,
-    reidblas_complex_double *x,
-    const reidblas_blas_int *incx
+    const compensated_blas_blas_int *n,
+    const compensated_blas_complex_double *a,
+    const compensated_blas_blas_int *lda,
+    compensated_blas_complex_double *x,
+    const compensated_blas_blas_int *incx
 ) {
     std::int64_t n_value = 0;
     const std::int64_t *n_ilp64 = nullptr;
@@ -3402,12 +3402,12 @@ extern "C" void ztbsv_(
     const char *uplo,
     const char *trans,
     const char *diag,
-    const reidblas_blas_int *n,
-    const reidblas_blas_int *k,
-    const reidblas_complex_double *a,
-    const reidblas_blas_int *lda,
-    reidblas_complex_double *x,
-    const reidblas_blas_int *incx
+    const compensated_blas_blas_int *n,
+    const compensated_blas_blas_int *k,
+    const compensated_blas_complex_double *a,
+    const compensated_blas_blas_int *lda,
+    compensated_blas_complex_double *x,
+    const compensated_blas_blas_int *incx
 ) {
     std::int64_t n_value = 0;
     const std::int64_t *n_ilp64 = nullptr;
@@ -3441,10 +3441,10 @@ extern "C" void ztpsv_(
     const char *uplo,
     const char *trans,
     const char *diag,
-    const reidblas_blas_int *n,
-    const reidblas_complex_double *ap,
-    reidblas_complex_double *x,
-    const reidblas_blas_int *incx
+    const compensated_blas_blas_int *n,
+    const compensated_blas_complex_double *ap,
+    compensated_blas_complex_double *x,
+    const compensated_blas_blas_int *incx
 ) {
     std::int64_t n_value = 0;
     const std::int64_t *n_ilp64 = nullptr;
@@ -3463,15 +3463,15 @@ extern "C" void ztpsv_(
 }
 
 extern "C" void zgerc_(
-    const reidblas_blas_int *m,
-    const reidblas_blas_int *n,
-    const reidblas_complex_double *alpha,
-    const reidblas_complex_double *x,
-    const reidblas_blas_int *incx,
-    const reidblas_complex_double *y,
-    const reidblas_blas_int *incy,
-    reidblas_complex_double *a,
-    const reidblas_blas_int *lda
+    const compensated_blas_blas_int *m,
+    const compensated_blas_blas_int *n,
+    const compensated_blas_complex_double *alpha,
+    const compensated_blas_complex_double *x,
+    const compensated_blas_blas_int *incx,
+    const compensated_blas_complex_double *y,
+    const compensated_blas_blas_int *incy,
+    compensated_blas_complex_double *a,
+    const compensated_blas_blas_int *lda
 ) {
     std::int64_t m_value = 0;
     const std::int64_t *m_ilp64 = nullptr;
@@ -3508,15 +3508,15 @@ extern "C" void zgerc_(
 }
 
 extern "C" void zgeru_(
-    const reidblas_blas_int *m,
-    const reidblas_blas_int *n,
-    const reidblas_complex_double *alpha,
-    const reidblas_complex_double *x,
-    const reidblas_blas_int *incx,
-    const reidblas_complex_double *y,
-    const reidblas_blas_int *incy,
-    reidblas_complex_double *a,
-    const reidblas_blas_int *lda
+    const compensated_blas_blas_int *m,
+    const compensated_blas_blas_int *n,
+    const compensated_blas_complex_double *alpha,
+    const compensated_blas_complex_double *x,
+    const compensated_blas_blas_int *incx,
+    const compensated_blas_complex_double *y,
+    const compensated_blas_blas_int *incy,
+    compensated_blas_complex_double *a,
+    const compensated_blas_blas_int *lda
 ) {
     std::int64_t m_value = 0;
     const std::int64_t *m_ilp64 = nullptr;
@@ -3554,12 +3554,12 @@ extern "C" void zgeru_(
 
 extern "C" void zher_(
     const char *uplo,
-    const reidblas_blas_int *n,
+    const compensated_blas_blas_int *n,
     const double *alpha,
-    const reidblas_complex_double *x,
-    const reidblas_blas_int *incx,
-    reidblas_complex_double *a,
-    const reidblas_blas_int *lda
+    const compensated_blas_complex_double *x,
+    const compensated_blas_blas_int *incx,
+    compensated_blas_complex_double *a,
+    const compensated_blas_blas_int *lda
 ) {
     std::int64_t n_value = 0;
     const std::int64_t *n_ilp64 = nullptr;
@@ -3585,11 +3585,11 @@ extern "C" void zher_(
 
 extern "C" void zhpr_(
     const char *uplo,
-    const reidblas_blas_int *n,
+    const compensated_blas_blas_int *n,
     const double *alpha,
-    const reidblas_complex_double *x,
-    const reidblas_blas_int *incx,
-    reidblas_complex_double *ap
+    const compensated_blas_complex_double *x,
+    const compensated_blas_blas_int *incx,
+    compensated_blas_complex_double *ap
 ) {
     std::int64_t n_value = 0;
     const std::int64_t *n_ilp64 = nullptr;
@@ -3609,14 +3609,14 @@ extern "C" void zhpr_(
 
 extern "C" void zher2_(
     const char *uplo,
-    const reidblas_blas_int *n,
-    const reidblas_complex_double *alpha,
-    const reidblas_complex_double *x,
-    const reidblas_blas_int *incx,
-    const reidblas_complex_double *y,
-    const reidblas_blas_int *incy,
-    reidblas_complex_double *a,
-    const reidblas_blas_int *lda
+    const compensated_blas_blas_int *n,
+    const compensated_blas_complex_double *alpha,
+    const compensated_blas_complex_double *x,
+    const compensated_blas_blas_int *incx,
+    const compensated_blas_complex_double *y,
+    const compensated_blas_blas_int *incy,
+    compensated_blas_complex_double *a,
+    const compensated_blas_blas_int *lda
 ) {
     std::int64_t n_value = 0;
     const std::int64_t *n_ilp64 = nullptr;
@@ -3648,13 +3648,13 @@ extern "C" void zher2_(
 
 extern "C" void zhpr2_(
     const char *uplo,
-    const reidblas_blas_int *n,
-    const reidblas_complex_double *alpha,
-    const reidblas_complex_double *x,
-    const reidblas_blas_int *incx,
-    const reidblas_complex_double *y,
-    const reidblas_blas_int *incy,
-    reidblas_complex_double *ap
+    const compensated_blas_blas_int *n,
+    const compensated_blas_complex_double *alpha,
+    const compensated_blas_complex_double *x,
+    const compensated_blas_blas_int *incx,
+    const compensated_blas_complex_double *y,
+    const compensated_blas_blas_int *incy,
+    compensated_blas_complex_double *ap
 ) {
     std::int64_t n_value = 0;
     const std::int64_t *n_ilp64 = nullptr;
@@ -3681,17 +3681,17 @@ extern "C" void zhpr2_(
 extern "C" void sgemm_(
     const char *transa,
     const char *transb,
-    const reidblas_blas_int *m,
-    const reidblas_blas_int *n,
-    const reidblas_blas_int *k,
+    const compensated_blas_blas_int *m,
+    const compensated_blas_blas_int *n,
+    const compensated_blas_blas_int *k,
     const float *alpha,
     const float *a,
-    const reidblas_blas_int *lda,
+    const compensated_blas_blas_int *lda,
     const float *b,
-    const reidblas_blas_int *ldb,
+    const compensated_blas_blas_int *ldb,
     const float *beta,
     float *c,
-    const reidblas_blas_int *ldc
+    const compensated_blas_blas_int *ldc
 ) {
     std::int64_t m_value = 0;
     const std::int64_t *m_ilp64 = nullptr;
@@ -3736,16 +3736,16 @@ extern "C" void sgemm_(
 extern "C" void ssymm_(
     const char *side,
     const char *uplo,
-    const reidblas_blas_int *m,
-    const reidblas_blas_int *n,
+    const compensated_blas_blas_int *m,
+    const compensated_blas_blas_int *n,
     const float *alpha,
     const float *a,
-    const reidblas_blas_int *lda,
+    const compensated_blas_blas_int *lda,
     const float *b,
-    const reidblas_blas_int *ldb,
+    const compensated_blas_blas_int *ldb,
     const float *beta,
     float *c,
-    const reidblas_blas_int *ldc
+    const compensated_blas_blas_int *ldc
 ) {
     std::int64_t m_value = 0;
     const std::int64_t *m_ilp64 = nullptr;
@@ -3784,14 +3784,14 @@ extern "C" void ssymm_(
 extern "C" void ssyrk_(
     const char *uplo,
     const char *trans,
-    const reidblas_blas_int *n,
-    const reidblas_blas_int *k,
+    const compensated_blas_blas_int *n,
+    const compensated_blas_blas_int *k,
     const float *alpha,
     const float *a,
-    const reidblas_blas_int *lda,
+    const compensated_blas_blas_int *lda,
     const float *beta,
     float *c,
-    const reidblas_blas_int *ldc
+    const compensated_blas_blas_int *ldc
 ) {
     std::int64_t n_value = 0;
     const std::int64_t *n_ilp64 = nullptr;
@@ -3824,16 +3824,16 @@ extern "C" void ssyrk_(
 extern "C" void ssyr2k_(
     const char *uplo,
     const char *trans,
-    const reidblas_blas_int *n,
-    const reidblas_blas_int *k,
+    const compensated_blas_blas_int *n,
+    const compensated_blas_blas_int *k,
     const float *alpha,
     const float *a,
-    const reidblas_blas_int *lda,
+    const compensated_blas_blas_int *lda,
     const float *b,
-    const reidblas_blas_int *ldb,
+    const compensated_blas_blas_int *ldb,
     const float *beta,
     float *c,
-    const reidblas_blas_int *ldc
+    const compensated_blas_blas_int *ldc
 ) {
     std::int64_t n_value = 0;
     const std::int64_t *n_ilp64 = nullptr;
@@ -3874,13 +3874,13 @@ extern "C" void strsm_(
     const char *uplo,
     const char *transa,
     const char *diag,
-    const reidblas_blas_int *m,
-    const reidblas_blas_int *n,
+    const compensated_blas_blas_int *m,
+    const compensated_blas_blas_int *n,
     const float *alpha,
     const float *a,
-    const reidblas_blas_int *lda,
+    const compensated_blas_blas_int *lda,
     float *b,
-    const reidblas_blas_int *ldb
+    const compensated_blas_blas_int *ldb
 ) {
     std::int64_t m_value = 0;
     const std::int64_t *m_ilp64 = nullptr;
@@ -3915,13 +3915,13 @@ extern "C" void strmm_(
     const char *uplo,
     const char *transa,
     const char *diag,
-    const reidblas_blas_int *m,
-    const reidblas_blas_int *n,
+    const compensated_blas_blas_int *m,
+    const compensated_blas_blas_int *n,
     const float *alpha,
     const float *a,
-    const reidblas_blas_int *lda,
+    const compensated_blas_blas_int *lda,
     float *b,
-    const reidblas_blas_int *ldb
+    const compensated_blas_blas_int *ldb
 ) {
     std::int64_t m_value = 0;
     const std::int64_t *m_ilp64 = nullptr;
@@ -3954,17 +3954,17 @@ extern "C" void strmm_(
 extern "C" void dgemm_(
     const char *transa,
     const char *transb,
-    const reidblas_blas_int *m,
-    const reidblas_blas_int *n,
-    const reidblas_blas_int *k,
+    const compensated_blas_blas_int *m,
+    const compensated_blas_blas_int *n,
+    const compensated_blas_blas_int *k,
     const double *alpha,
     const double *a,
-    const reidblas_blas_int *lda,
+    const compensated_blas_blas_int *lda,
     const double *b,
-    const reidblas_blas_int *ldb,
+    const compensated_blas_blas_int *ldb,
     const double *beta,
     double *c,
-    const reidblas_blas_int *ldc
+    const compensated_blas_blas_int *ldc
 ) {
     std::int64_t m_value = 0;
     const std::int64_t *m_ilp64 = nullptr;
@@ -4009,16 +4009,16 @@ extern "C" void dgemm_(
 extern "C" void dsymm_(
     const char *side,
     const char *uplo,
-    const reidblas_blas_int *m,
-    const reidblas_blas_int *n,
+    const compensated_blas_blas_int *m,
+    const compensated_blas_blas_int *n,
     const double *alpha,
     const double *a,
-    const reidblas_blas_int *lda,
+    const compensated_blas_blas_int *lda,
     const double *b,
-    const reidblas_blas_int *ldb,
+    const compensated_blas_blas_int *ldb,
     const double *beta,
     double *c,
-    const reidblas_blas_int *ldc
+    const compensated_blas_blas_int *ldc
 ) {
     std::int64_t m_value = 0;
     const std::int64_t *m_ilp64 = nullptr;
@@ -4057,14 +4057,14 @@ extern "C" void dsymm_(
 extern "C" void dsyrk_(
     const char *uplo,
     const char *trans,
-    const reidblas_blas_int *n,
-    const reidblas_blas_int *k,
+    const compensated_blas_blas_int *n,
+    const compensated_blas_blas_int *k,
     const double *alpha,
     const double *a,
-    const reidblas_blas_int *lda,
+    const compensated_blas_blas_int *lda,
     const double *beta,
     double *c,
-    const reidblas_blas_int *ldc
+    const compensated_blas_blas_int *ldc
 ) {
     std::int64_t n_value = 0;
     const std::int64_t *n_ilp64 = nullptr;
@@ -4097,16 +4097,16 @@ extern "C" void dsyrk_(
 extern "C" void dsyr2k_(
     const char *uplo,
     const char *trans,
-    const reidblas_blas_int *n,
-    const reidblas_blas_int *k,
+    const compensated_blas_blas_int *n,
+    const compensated_blas_blas_int *k,
     const double *alpha,
     const double *a,
-    const reidblas_blas_int *lda,
+    const compensated_blas_blas_int *lda,
     const double *b,
-    const reidblas_blas_int *ldb,
+    const compensated_blas_blas_int *ldb,
     const double *beta,
     double *c,
-    const reidblas_blas_int *ldc
+    const compensated_blas_blas_int *ldc
 ) {
     std::int64_t n_value = 0;
     const std::int64_t *n_ilp64 = nullptr;
@@ -4147,13 +4147,13 @@ extern "C" void dtrsm_(
     const char *uplo,
     const char *transa,
     const char *diag,
-    const reidblas_blas_int *m,
-    const reidblas_blas_int *n,
+    const compensated_blas_blas_int *m,
+    const compensated_blas_blas_int *n,
     const double *alpha,
     const double *a,
-    const reidblas_blas_int *lda,
+    const compensated_blas_blas_int *lda,
     double *b,
-    const reidblas_blas_int *ldb
+    const compensated_blas_blas_int *ldb
 ) {
     std::int64_t m_value = 0;
     const std::int64_t *m_ilp64 = nullptr;
@@ -4188,13 +4188,13 @@ extern "C" void dtrmm_(
     const char *uplo,
     const char *transa,
     const char *diag,
-    const reidblas_blas_int *m,
-    const reidblas_blas_int *n,
+    const compensated_blas_blas_int *m,
+    const compensated_blas_blas_int *n,
     const double *alpha,
     const double *a,
-    const reidblas_blas_int *lda,
+    const compensated_blas_blas_int *lda,
     double *b,
-    const reidblas_blas_int *ldb
+    const compensated_blas_blas_int *ldb
 ) {
     std::int64_t m_value = 0;
     const std::int64_t *m_ilp64 = nullptr;
@@ -4227,17 +4227,17 @@ extern "C" void dtrmm_(
 extern "C" void cgemm_(
     const char *transa,
     const char *transb,
-    const reidblas_blas_int *m,
-    const reidblas_blas_int *n,
-    const reidblas_blas_int *k,
-    const reidblas_complex_float *alpha,
-    const reidblas_complex_float *a,
-    const reidblas_blas_int *lda,
-    const reidblas_complex_float *b,
-    const reidblas_blas_int *ldb,
-    const reidblas_complex_float *beta,
-    reidblas_complex_float *c,
-    const reidblas_blas_int *ldc
+    const compensated_blas_blas_int *m,
+    const compensated_blas_blas_int *n,
+    const compensated_blas_blas_int *k,
+    const compensated_blas_complex_float *alpha,
+    const compensated_blas_complex_float *a,
+    const compensated_blas_blas_int *lda,
+    const compensated_blas_complex_float *b,
+    const compensated_blas_blas_int *ldb,
+    const compensated_blas_complex_float *beta,
+    compensated_blas_complex_float *c,
+    const compensated_blas_blas_int *ldc
 ) {
     std::int64_t m_value = 0;
     const std::int64_t *m_ilp64 = nullptr;
@@ -4282,16 +4282,16 @@ extern "C" void cgemm_(
 extern "C" void csymm_(
     const char *side,
     const char *uplo,
-    const reidblas_blas_int *m,
-    const reidblas_blas_int *n,
-    const reidblas_complex_float *alpha,
-    const reidblas_complex_float *a,
-    const reidblas_blas_int *lda,
-    const reidblas_complex_float *b,
-    const reidblas_blas_int *ldb,
-    const reidblas_complex_float *beta,
-    reidblas_complex_float *c,
-    const reidblas_blas_int *ldc
+    const compensated_blas_blas_int *m,
+    const compensated_blas_blas_int *n,
+    const compensated_blas_complex_float *alpha,
+    const compensated_blas_complex_float *a,
+    const compensated_blas_blas_int *lda,
+    const compensated_blas_complex_float *b,
+    const compensated_blas_blas_int *ldb,
+    const compensated_blas_complex_float *beta,
+    compensated_blas_complex_float *c,
+    const compensated_blas_blas_int *ldc
 ) {
     std::int64_t m_value = 0;
     const std::int64_t *m_ilp64 = nullptr;
@@ -4330,16 +4330,16 @@ extern "C" void csymm_(
 extern "C" void chemm_(
     const char *side,
     const char *uplo,
-    const reidblas_blas_int *m,
-    const reidblas_blas_int *n,
-    const reidblas_complex_float *alpha,
-    const reidblas_complex_float *a,
-    const reidblas_blas_int *lda,
-    const reidblas_complex_float *b,
-    const reidblas_blas_int *ldb,
-    const reidblas_complex_float *beta,
-    reidblas_complex_float *c,
-    const reidblas_blas_int *ldc
+    const compensated_blas_blas_int *m,
+    const compensated_blas_blas_int *n,
+    const compensated_blas_complex_float *alpha,
+    const compensated_blas_complex_float *a,
+    const compensated_blas_blas_int *lda,
+    const compensated_blas_complex_float *b,
+    const compensated_blas_blas_int *ldb,
+    const compensated_blas_complex_float *beta,
+    compensated_blas_complex_float *c,
+    const compensated_blas_blas_int *ldc
 ) {
     std::int64_t m_value = 0;
     const std::int64_t *m_ilp64 = nullptr;
@@ -4378,14 +4378,14 @@ extern "C" void chemm_(
 extern "C" void csyrk_(
     const char *uplo,
     const char *trans,
-    const reidblas_blas_int *n,
-    const reidblas_blas_int *k,
-    const reidblas_complex_float *alpha,
-    const reidblas_complex_float *a,
-    const reidblas_blas_int *lda,
-    const reidblas_complex_float *beta,
-    reidblas_complex_float *c,
-    const reidblas_blas_int *ldc
+    const compensated_blas_blas_int *n,
+    const compensated_blas_blas_int *k,
+    const compensated_blas_complex_float *alpha,
+    const compensated_blas_complex_float *a,
+    const compensated_blas_blas_int *lda,
+    const compensated_blas_complex_float *beta,
+    compensated_blas_complex_float *c,
+    const compensated_blas_blas_int *ldc
 ) {
     std::int64_t n_value = 0;
     const std::int64_t *n_ilp64 = nullptr;
@@ -4418,14 +4418,14 @@ extern "C" void csyrk_(
 extern "C" void cherk_(
     const char *uplo,
     const char *trans,
-    const reidblas_blas_int *n,
-    const reidblas_blas_int *k,
+    const compensated_blas_blas_int *n,
+    const compensated_blas_blas_int *k,
     const float *alpha,
-    const reidblas_complex_float *a,
-    const reidblas_blas_int *lda,
+    const compensated_blas_complex_float *a,
+    const compensated_blas_blas_int *lda,
     const float *beta,
-    reidblas_complex_float *c,
-    const reidblas_blas_int *ldc
+    compensated_blas_complex_float *c,
+    const compensated_blas_blas_int *ldc
 ) {
     std::int64_t n_value = 0;
     const std::int64_t *n_ilp64 = nullptr;
@@ -4458,16 +4458,16 @@ extern "C" void cherk_(
 extern "C" void csyr2k_(
     const char *uplo,
     const char *trans,
-    const reidblas_blas_int *n,
-    const reidblas_blas_int *k,
-    const reidblas_complex_float *alpha,
-    const reidblas_complex_float *a,
-    const reidblas_blas_int *lda,
-    const reidblas_complex_float *b,
-    const reidblas_blas_int *ldb,
-    const reidblas_complex_float *beta,
-    reidblas_complex_float *c,
-    const reidblas_blas_int *ldc
+    const compensated_blas_blas_int *n,
+    const compensated_blas_blas_int *k,
+    const compensated_blas_complex_float *alpha,
+    const compensated_blas_complex_float *a,
+    const compensated_blas_blas_int *lda,
+    const compensated_blas_complex_float *b,
+    const compensated_blas_blas_int *ldb,
+    const compensated_blas_complex_float *beta,
+    compensated_blas_complex_float *c,
+    const compensated_blas_blas_int *ldc
 ) {
     std::int64_t n_value = 0;
     const std::int64_t *n_ilp64 = nullptr;
@@ -4506,16 +4506,16 @@ extern "C" void csyr2k_(
 extern "C" void cher2k_(
     const char *uplo,
     const char *trans,
-    const reidblas_blas_int *n,
-    const reidblas_blas_int *k,
-    const reidblas_complex_float *alpha,
-    const reidblas_complex_float *a,
-    const reidblas_blas_int *lda,
-    const reidblas_complex_float *b,
-    const reidblas_blas_int *ldb,
+    const compensated_blas_blas_int *n,
+    const compensated_blas_blas_int *k,
+    const compensated_blas_complex_float *alpha,
+    const compensated_blas_complex_float *a,
+    const compensated_blas_blas_int *lda,
+    const compensated_blas_complex_float *b,
+    const compensated_blas_blas_int *ldb,
     const float *beta,
-    reidblas_complex_float *c,
-    const reidblas_blas_int *ldc
+    compensated_blas_complex_float *c,
+    const compensated_blas_blas_int *ldc
 ) {
     std::int64_t n_value = 0;
     const std::int64_t *n_ilp64 = nullptr;
@@ -4556,13 +4556,13 @@ extern "C" void ctrsm_(
     const char *uplo,
     const char *transa,
     const char *diag,
-    const reidblas_blas_int *m,
-    const reidblas_blas_int *n,
-    const reidblas_complex_float *alpha,
-    const reidblas_complex_float *a,
-    const reidblas_blas_int *lda,
-    reidblas_complex_float *b,
-    const reidblas_blas_int *ldb
+    const compensated_blas_blas_int *m,
+    const compensated_blas_blas_int *n,
+    const compensated_blas_complex_float *alpha,
+    const compensated_blas_complex_float *a,
+    const compensated_blas_blas_int *lda,
+    compensated_blas_complex_float *b,
+    const compensated_blas_blas_int *ldb
 ) {
     std::int64_t m_value = 0;
     const std::int64_t *m_ilp64 = nullptr;
@@ -4597,13 +4597,13 @@ extern "C" void ctrmm_(
     const char *uplo,
     const char *transa,
     const char *diag,
-    const reidblas_blas_int *m,
-    const reidblas_blas_int *n,
-    const reidblas_complex_float *alpha,
-    const reidblas_complex_float *a,
-    const reidblas_blas_int *lda,
-    reidblas_complex_float *b,
-    const reidblas_blas_int *ldb
+    const compensated_blas_blas_int *m,
+    const compensated_blas_blas_int *n,
+    const compensated_blas_complex_float *alpha,
+    const compensated_blas_complex_float *a,
+    const compensated_blas_blas_int *lda,
+    compensated_blas_complex_float *b,
+    const compensated_blas_blas_int *ldb
 ) {
     std::int64_t m_value = 0;
     const std::int64_t *m_ilp64 = nullptr;
@@ -4636,17 +4636,17 @@ extern "C" void ctrmm_(
 extern "C" void zgemm_(
     const char *transa,
     const char *transb,
-    const reidblas_blas_int *m,
-    const reidblas_blas_int *n,
-    const reidblas_blas_int *k,
-    const reidblas_complex_double *alpha,
-    const reidblas_complex_double *a,
-    const reidblas_blas_int *lda,
-    const reidblas_complex_double *b,
-    const reidblas_blas_int *ldb,
-    const reidblas_complex_double *beta,
-    reidblas_complex_double *c,
-    const reidblas_blas_int *ldc
+    const compensated_blas_blas_int *m,
+    const compensated_blas_blas_int *n,
+    const compensated_blas_blas_int *k,
+    const compensated_blas_complex_double *alpha,
+    const compensated_blas_complex_double *a,
+    const compensated_blas_blas_int *lda,
+    const compensated_blas_complex_double *b,
+    const compensated_blas_blas_int *ldb,
+    const compensated_blas_complex_double *beta,
+    compensated_blas_complex_double *c,
+    const compensated_blas_blas_int *ldc
 ) {
     std::int64_t m_value = 0;
     const std::int64_t *m_ilp64 = nullptr;
@@ -4691,16 +4691,16 @@ extern "C" void zgemm_(
 extern "C" void zsymm_(
     const char *side,
     const char *uplo,
-    const reidblas_blas_int *m,
-    const reidblas_blas_int *n,
-    const reidblas_complex_double *alpha,
-    const reidblas_complex_double *a,
-    const reidblas_blas_int *lda,
-    const reidblas_complex_double *b,
-    const reidblas_blas_int *ldb,
-    const reidblas_complex_double *beta,
-    reidblas_complex_double *c,
-    const reidblas_blas_int *ldc
+    const compensated_blas_blas_int *m,
+    const compensated_blas_blas_int *n,
+    const compensated_blas_complex_double *alpha,
+    const compensated_blas_complex_double *a,
+    const compensated_blas_blas_int *lda,
+    const compensated_blas_complex_double *b,
+    const compensated_blas_blas_int *ldb,
+    const compensated_blas_complex_double *beta,
+    compensated_blas_complex_double *c,
+    const compensated_blas_blas_int *ldc
 ) {
     std::int64_t m_value = 0;
     const std::int64_t *m_ilp64 = nullptr;
@@ -4739,16 +4739,16 @@ extern "C" void zsymm_(
 extern "C" void zhemm_(
     const char *side,
     const char *uplo,
-    const reidblas_blas_int *m,
-    const reidblas_blas_int *n,
-    const reidblas_complex_double *alpha,
-    const reidblas_complex_double *a,
-    const reidblas_blas_int *lda,
-    const reidblas_complex_double *b,
-    const reidblas_blas_int *ldb,
-    const reidblas_complex_double *beta,
-    reidblas_complex_double *c,
-    const reidblas_blas_int *ldc
+    const compensated_blas_blas_int *m,
+    const compensated_blas_blas_int *n,
+    const compensated_blas_complex_double *alpha,
+    const compensated_blas_complex_double *a,
+    const compensated_blas_blas_int *lda,
+    const compensated_blas_complex_double *b,
+    const compensated_blas_blas_int *ldb,
+    const compensated_blas_complex_double *beta,
+    compensated_blas_complex_double *c,
+    const compensated_blas_blas_int *ldc
 ) {
     std::int64_t m_value = 0;
     const std::int64_t *m_ilp64 = nullptr;
@@ -4787,14 +4787,14 @@ extern "C" void zhemm_(
 extern "C" void zsyrk_(
     const char *uplo,
     const char *trans,
-    const reidblas_blas_int *n,
-    const reidblas_blas_int *k,
-    const reidblas_complex_double *alpha,
-    const reidblas_complex_double *a,
-    const reidblas_blas_int *lda,
-    const reidblas_complex_double *beta,
-    reidblas_complex_double *c,
-    const reidblas_blas_int *ldc
+    const compensated_blas_blas_int *n,
+    const compensated_blas_blas_int *k,
+    const compensated_blas_complex_double *alpha,
+    const compensated_blas_complex_double *a,
+    const compensated_blas_blas_int *lda,
+    const compensated_blas_complex_double *beta,
+    compensated_blas_complex_double *c,
+    const compensated_blas_blas_int *ldc
 ) {
     std::int64_t n_value = 0;
     const std::int64_t *n_ilp64 = nullptr;
@@ -4827,14 +4827,14 @@ extern "C" void zsyrk_(
 extern "C" void zherk_(
     const char *uplo,
     const char *trans,
-    const reidblas_blas_int *n,
-    const reidblas_blas_int *k,
+    const compensated_blas_blas_int *n,
+    const compensated_blas_blas_int *k,
     const double *alpha,
-    const reidblas_complex_double *a,
-    const reidblas_blas_int *lda,
+    const compensated_blas_complex_double *a,
+    const compensated_blas_blas_int *lda,
     const double *beta,
-    reidblas_complex_double *c,
-    const reidblas_blas_int *ldc
+    compensated_blas_complex_double *c,
+    const compensated_blas_blas_int *ldc
 ) {
     std::int64_t n_value = 0;
     const std::int64_t *n_ilp64 = nullptr;
@@ -4867,16 +4867,16 @@ extern "C" void zherk_(
 extern "C" void zsyr2k_(
     const char *uplo,
     const char *trans,
-    const reidblas_blas_int *n,
-    const reidblas_blas_int *k,
-    const reidblas_complex_double *alpha,
-    const reidblas_complex_double *a,
-    const reidblas_blas_int *lda,
-    const reidblas_complex_double *b,
-    const reidblas_blas_int *ldb,
-    const reidblas_complex_double *beta,
-    reidblas_complex_double *c,
-    const reidblas_blas_int *ldc
+    const compensated_blas_blas_int *n,
+    const compensated_blas_blas_int *k,
+    const compensated_blas_complex_double *alpha,
+    const compensated_blas_complex_double *a,
+    const compensated_blas_blas_int *lda,
+    const compensated_blas_complex_double *b,
+    const compensated_blas_blas_int *ldb,
+    const compensated_blas_complex_double *beta,
+    compensated_blas_complex_double *c,
+    const compensated_blas_blas_int *ldc
 ) {
     std::int64_t n_value = 0;
     const std::int64_t *n_ilp64 = nullptr;
@@ -4915,16 +4915,16 @@ extern "C" void zsyr2k_(
 extern "C" void zher2k_(
     const char *uplo,
     const char *trans,
-    const reidblas_blas_int *n,
-    const reidblas_blas_int *k,
-    const reidblas_complex_double *alpha,
-    const reidblas_complex_double *a,
-    const reidblas_blas_int *lda,
-    const reidblas_complex_double *b,
-    const reidblas_blas_int *ldb,
+    const compensated_blas_blas_int *n,
+    const compensated_blas_blas_int *k,
+    const compensated_blas_complex_double *alpha,
+    const compensated_blas_complex_double *a,
+    const compensated_blas_blas_int *lda,
+    const compensated_blas_complex_double *b,
+    const compensated_blas_blas_int *ldb,
     const double *beta,
-    reidblas_complex_double *c,
-    const reidblas_blas_int *ldc
+    compensated_blas_complex_double *c,
+    const compensated_blas_blas_int *ldc
 ) {
     std::int64_t n_value = 0;
     const std::int64_t *n_ilp64 = nullptr;
@@ -4965,13 +4965,13 @@ extern "C" void ztrsm_(
     const char *uplo,
     const char *transa,
     const char *diag,
-    const reidblas_blas_int *m,
-    const reidblas_blas_int *n,
-    const reidblas_complex_double *alpha,
-    const reidblas_complex_double *a,
-    const reidblas_blas_int *lda,
-    reidblas_complex_double *b,
-    const reidblas_blas_int *ldb
+    const compensated_blas_blas_int *m,
+    const compensated_blas_blas_int *n,
+    const compensated_blas_complex_double *alpha,
+    const compensated_blas_complex_double *a,
+    const compensated_blas_blas_int *lda,
+    compensated_blas_complex_double *b,
+    const compensated_blas_blas_int *ldb
 ) {
     std::int64_t m_value = 0;
     const std::int64_t *m_ilp64 = nullptr;
@@ -5006,13 +5006,13 @@ extern "C" void ztrmm_(
     const char *uplo,
     const char *transa,
     const char *diag,
-    const reidblas_blas_int *m,
-    const reidblas_blas_int *n,
-    const reidblas_complex_double *alpha,
-    const reidblas_complex_double *a,
-    const reidblas_blas_int *lda,
-    reidblas_complex_double *b,
-    const reidblas_blas_int *ldb
+    const compensated_blas_blas_int *m,
+    const compensated_blas_blas_int *n,
+    const compensated_blas_complex_double *alpha,
+    const compensated_blas_complex_double *a,
+    const compensated_blas_blas_int *lda,
+    compensated_blas_complex_double *b,
+    const compensated_blas_blas_int *ldb
 ) {
     std::int64_t m_value = 0;
     const std::int64_t *m_ilp64 = nullptr;

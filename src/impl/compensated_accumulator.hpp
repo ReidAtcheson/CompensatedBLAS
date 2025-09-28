@@ -7,7 +7,7 @@
 
 #include "compensated_arithmetic.hpp"
 
-namespace reidblas {
+namespace compensated_blas {
 
 enum class accumulator_layout { soa, aos };
 
@@ -161,4 +161,4 @@ private:
     bool owns_storage_ = false;
 };
 
-}  // namespace reidblas
+}  // namespace compensated_blas

@@ -99,6 +99,87 @@ TEST(compensated_arithmetic_test, two_prod_recovers_squared_value) {
     EXPECT_EQ(reconstructed, expected);
 }
 
+
+TEST(compensated_runtime_allocator, default_allocation_and_reset) {
+    compensated_blas::runtime::set_default_allocatr();
+    void *block = compensated_blas::runtime::allocate(128, alignof(double));
+    ASSERT_NE(block, nullptr);
+    compensated_blas::runtime::deallocate(block, 128, alignof(double));
+}
+
+TEST(compensated_runtime_allocator, arena_allocation_with_alignment) {
+    alignas(64) std::array<std::byte, 512> backing{};
+    compensated_blas::runtime::arena_config cfg;
+    cfg.buffer = backing.data();
+    cfg.size = backing.size();
+    cfg.alignment = 64;
+
+    compensated_blas::runtime::set_arena(&cfg);
+    void *block = compensated_blas::runtime::allocate(128, 64);
+    ASSERT_NE(block, nullptr);
+    auto *bytes = static_cast<std::byte *>(block);
+    EXPECT_GE(bytes, backing.data());
+    EXPECT_LE(bytes + 128, backing.data() + backing.size());
+
+    compensated_blas::runtime::deallocate(block, 128, 64);
+    compensated_blas::runtime::clear_deferred_rounding_registrations();
+    compensated_blas::runtime::set_default_allocatr();
+}
+
+TEST(compensated_runtime_deferred_rounding, register_and_retrieve_descriptors) {
+    compensated_blas::runtime::set_default_allocatr();
+    compensated_blas::runtime::clear_deferred_rounding_registrations();
+
+    compensated_blas::runtime::preallocation_request request{};
+    request.deferred_rounding_matrices = 2;
+    request.deferred_rounding_vectors = 2;
+    compensated_blas::runtime::preallocate(request);
+
+    compensated_blas::runtime::deferred_rounding_matrix matrix{};
+    matrix.data = reinterpret_cast<void *>(0x1234);
+    matrix.rows = 8;
+    matrix.cols = 8;
+    matrix.leading_dimension = 8;
+    matrix.element_size = sizeof(double);
+    matrix.alignment = alignof(double);
+    matrix.type = compensated_blas::runtime::scalar_type::real64;
+    matrix.row_major = true;
+
+    compensated_blas::runtime::register_deferred_rounding_matrix(matrix);
+    ASSERT_EQ(compensated_blas::runtime::deferred_rounding_matrix_count(), 1u);
+
+    auto retrieved_matrix = compensated_blas::runtime::deferred_rounding_matrix_at(0);
+    EXPECT_EQ(retrieved_matrix.data, matrix.data);
+    EXPECT_EQ(retrieved_matrix.rows, matrix.rows);
+    EXPECT_EQ(retrieved_matrix.cols, matrix.cols);
+    EXPECT_EQ(retrieved_matrix.leading_dimension, matrix.leading_dimension);
+    EXPECT_EQ(retrieved_matrix.element_size, matrix.element_size);
+    EXPECT_EQ(retrieved_matrix.alignment, matrix.alignment);
+    EXPECT_EQ(retrieved_matrix.type, matrix.type);
+    EXPECT_TRUE(retrieved_matrix.row_major);
+
+    compensated_blas::runtime::deferred_rounding_vector vector{};
+    vector.data = reinterpret_cast<void *>(0x5678);
+    vector.length = 16;
+    vector.stride = 1;
+    vector.element_size = sizeof(double);
+    vector.alignment = alignof(double);
+    vector.type = compensated_blas::runtime::scalar_type::real64;
+
+    compensated_blas::runtime::register_deferred_rounding_vector(vector);
+    ASSERT_EQ(compensated_blas::runtime::deferred_rounding_vector_count(), 1u);
+
+    auto retrieved_vector = compensated_blas::runtime::deferred_rounding_vector_at(0);
+    EXPECT_EQ(retrieved_vector.data, vector.data);
+    EXPECT_EQ(retrieved_vector.length, vector.length);
+    EXPECT_EQ(retrieved_vector.stride, vector.stride);
+    EXPECT_EQ(retrieved_vector.element_size, vector.element_size);
+    EXPECT_EQ(retrieved_vector.alignment, vector.alignment);
+    EXPECT_EQ(retrieved_vector.type, vector.type);
+
+    compensated_blas::runtime::clear_deferred_rounding_registrations();
+}
+
 TEST(compensated_arithmetic_test, two_prod_complex_recovers_squared_value) {
     const double base = std::nextafter(1.0, 2.0);
     const std::complex<double> value(base, -base);

@@ -177,6 +177,19 @@ std::ptrdiff_t to_stride(const std::int64_t *value) {
     return value ? static_cast<std::ptrdiff_t>(*value) : std::ptrdiff_t{1};
 }
 
+template <typename T>
+T *adjust_pointer(T *ptr, std::int64_t count, std::ptrdiff_t inc) {
+    if (ptr == nullptr || count <= 0) {
+        return ptr;
+    }
+    if (inc < 0) {
+        const std::int64_t steps = count - 1;
+        const std::int64_t stride = static_cast<std::int64_t>(-inc);
+        ptr += static_cast<std::ptrdiff_t>(steps * stride);
+    }
+    return ptr;
+}
+
 struct deferred_vector_metadata_t {
     void *compensation = nullptr;
     std::size_t terms = 0;
@@ -265,15 +278,19 @@ T dot_impl(std::int64_t count, const T *x, std::ptrdiff_t incx, const T *y, std:
     std::vector<T> compensation(terms, T{});
     auto *bins = compensation.data();
 
-    const T *x_ptr = x;
-    const T *y_ptr = y;
+    const T *x_ptr = adjust_pointer(x, count, incx);
+    const T *y_ptr = adjust_pointer(y, count, incy);
+    std::ptrdiff_t x_step = incx;
+    std::ptrdiff_t y_step = incy;
     for (std::int64_t i = 0; i < count; ++i) {
-        T left = x_ptr[i * incx];
+        T left = *x_ptr;
         if constexpr (scalar_traits_t<T>::is_complex && ConjugateX) {
             left = std::conj(left);
         }
-        const T right = y_ptr[i * incy];
+        const T right = *y_ptr;
         accumulate_value(primary, bins, terms, left * right);
+        x_ptr += x_step;
+        y_ptr += y_step;
     }
     return finalize_value(primary, bins, terms);
 }
@@ -293,9 +310,15 @@ float sdsdot_impl(std::int64_t count,
     std::vector<double> compensation(terms, 0.0);
     auto *bins = compensation.data();
 
+    const float *x_ptr = adjust_pointer(x, count, incx);
+    const float *y_ptr = adjust_pointer(y, count, incy);
+    const std::ptrdiff_t x_step = incx;
+    const std::ptrdiff_t y_step = incy;
     for (std::int64_t i = 0; i < count; ++i) {
-        const double product = static_cast<double>(x[i * incx]) * static_cast<double>(y[i * incy]);
+        const double product = static_cast<double>(*x_ptr) * static_cast<double>(*y_ptr);
         accumulate_value(primary, bins, terms, product);
+        x_ptr += x_step;
+        y_ptr += y_step;
     }
     const double result = finalize_value(primary, bins, terms);
     return static_cast<float>(result);
@@ -314,9 +337,15 @@ double dsdot_impl(std::int64_t count,
     double primary{};
     std::vector<double> compensation(terms, 0.0);
     auto *bins = compensation.data();
+    const float *x_ptr = adjust_pointer(x, count, incx);
+    const float *y_ptr = adjust_pointer(y, count, incy);
+    const std::ptrdiff_t x_step = incx;
+    const std::ptrdiff_t y_step = incy;
     for (std::int64_t i = 0; i < count; ++i) {
-        const double product = static_cast<double>(x[i * incx]) * static_cast<double>(y[i * incy]);
+        const double product = static_cast<double>(*x_ptr) * static_cast<double>(*y_ptr);
         accumulate_value(primary, bins, terms, product);
+        x_ptr += x_step;
+        y_ptr += y_step;
     }
     return finalize_value(primary, bins, terms);
 }
@@ -340,9 +369,14 @@ void axpy_impl(std::int64_t count,
     std::vector<T> local_bins(global_terms, T{});
     T *local_bins_ptr = global_terms > 0 ? local_bins.data() : nullptr;
 
+    const T *x_ptr = adjust_pointer(x, count, incx);
+    T *y_ptr = adjust_pointer(y, count, incy);
+    const std::ptrdiff_t x_step = incx;
+    const std::ptrdiff_t y_step = incy;
+
     for (std::int64_t i = 0; i < count; ++i) {
-        const T contribution = alpha * x[i * incx];
-        T &destination = y[i * incy];
+        const T contribution = alpha * (*x_ptr);
+        T &destination = *y_ptr;
 
         if (use_deferred) {
             auto *compensation = static_cast<T *>(deferred.compensation);
@@ -358,6 +392,8 @@ void axpy_impl(std::int64_t count,
             accumulate_value(destination, local_bins_ptr, global_terms, contribution);
             destination = finalize_value(destination, local_bins_ptr, global_terms);
         }
+        x_ptr += x_step;
+        y_ptr += y_step;
     }
 }
 

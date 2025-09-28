@@ -1,7 +1,15 @@
 #include "reidblas_blas_lp64.h"
-#include "reidblas_blas_ilp64_internal.hpp"
+#include "impl/reidblas_backend_ilp64.hpp"
 
 #include <cstdint>
+
+namespace {
+
+inline reidblas::impl::BlasBackend &backend() {
+    return reidblas::impl::get_active_backend();
+}
+
+}  // namespace
 
 extern "C" void srotg_(
     float *a,
@@ -9,7 +17,7 @@ extern "C" void srotg_(
     float *c,
     float *s
 ) {
-    reidblas::ilp64::srotg(a, b, c, s);
+    backend().srotg(a, b, c, s);
 }
 
 extern "C" void srotmg_(
@@ -19,7 +27,7 @@ extern "C" void srotmg_(
     const float *y1,
     float *param
 ) {
-    reidblas::ilp64::srotmg(d1, d2, x1, y1, param);
+    backend().srotmg(d1, d2, x1, y1, param);
 }
 
 extern "C" void srot_(
@@ -50,7 +58,7 @@ extern "C" void srot_(
         incy_ilp64 = &incy_value;
     }
 
-    reidblas::ilp64::srot(n_ilp64, x, incx_ilp64, y, incy_ilp64, c, s);
+    backend().srot(n_ilp64, x, incx_ilp64, y, incy_ilp64, c, s);
 }
 
 extern "C" void srotm_(
@@ -80,7 +88,7 @@ extern "C" void srotm_(
         incy_ilp64 = &incy_value;
     }
 
-    reidblas::ilp64::srotm(n_ilp64, x, incx_ilp64, y, incy_ilp64, param);
+    backend().srotm(n_ilp64, x, incx_ilp64, y, incy_ilp64, param);
 }
 
 extern "C" void sswap_(
@@ -109,7 +117,7 @@ extern "C" void sswap_(
         incy_ilp64 = &incy_value;
     }
 
-    reidblas::ilp64::sswap(n_ilp64, x, incx_ilp64, y, incy_ilp64);
+    backend().sswap(n_ilp64, x, incx_ilp64, y, incy_ilp64);
 }
 
 extern "C" void sscal_(
@@ -131,7 +139,7 @@ extern "C" void sscal_(
         incx_ilp64 = &incx_value;
     }
 
-    reidblas::ilp64::sscal(n_ilp64, alpha, x, incx_ilp64);
+    backend().sscal(n_ilp64, alpha, x, incx_ilp64);
 }
 
 extern "C" void scopy_(
@@ -160,7 +168,7 @@ extern "C" void scopy_(
         incy_ilp64 = &incy_value;
     }
 
-    reidblas::ilp64::scopy(n_ilp64, x, incx_ilp64, y, incy_ilp64);
+    backend().scopy(n_ilp64, x, incx_ilp64, y, incy_ilp64);
 }
 
 extern "C" void saxpy_(
@@ -190,7 +198,7 @@ extern "C" void saxpy_(
         incy_ilp64 = &incy_value;
     }
 
-    reidblas::ilp64::saxpy(n_ilp64, alpha, x, incx_ilp64, y, incy_ilp64);
+    backend().saxpy(n_ilp64, alpha, x, incx_ilp64, y, incy_ilp64);
 }
 
 extern "C" float sdot_(
@@ -219,7 +227,7 @@ extern "C" float sdot_(
         incy_ilp64 = &incy_value;
     }
 
-    return reidblas::ilp64::sdot(n_ilp64, x, incx_ilp64, y, incy_ilp64);
+    return backend().sdot(n_ilp64, x, incx_ilp64, y, incy_ilp64);
 }
 
 extern "C" float sdsdot_(
@@ -249,7 +257,7 @@ extern "C" float sdsdot_(
         incy_ilp64 = &incy_value;
     }
 
-    return reidblas::ilp64::sdsdot(n_ilp64, sb, x, incx_ilp64, y, incy_ilp64);
+    return backend().sdsdot(n_ilp64, sb, x, incx_ilp64, y, incy_ilp64);
 }
 
 extern "C" float snrm2_(
@@ -270,7 +278,7 @@ extern "C" float snrm2_(
         incx_ilp64 = &incx_value;
     }
 
-    return reidblas::ilp64::snrm2(n_ilp64, x, incx_ilp64);
+    return backend().snrm2(n_ilp64, x, incx_ilp64);
 }
 
 extern "C" float sasum_(
@@ -291,7 +299,7 @@ extern "C" float sasum_(
         incx_ilp64 = &incx_value;
     }
 
-    return reidblas::ilp64::sasum(n_ilp64, x, incx_ilp64);
+    return backend().sasum(n_ilp64, x, incx_ilp64);
 }
 
 extern "C" reidblas_blas_int isamax_(
@@ -312,7 +320,7 @@ extern "C" reidblas_blas_int isamax_(
         incx_ilp64 = &incx_value;
     }
 
-    auto result = reidblas::ilp64::isamax(n_ilp64, x, incx_ilp64);
+    auto result = backend().isamax(n_ilp64, x, incx_ilp64);
     return static_cast<reidblas_blas_int>(result);
 }
 
@@ -322,7 +330,7 @@ extern "C" void drotg_(
     double *c,
     double *s
 ) {
-    reidblas::ilp64::drotg(a, b, c, s);
+    backend().drotg(a, b, c, s);
 }
 
 extern "C" void drotmg_(
@@ -332,7 +340,7 @@ extern "C" void drotmg_(
     const double *y1,
     double *param
 ) {
-    reidblas::ilp64::drotmg(d1, d2, x1, y1, param);
+    backend().drotmg(d1, d2, x1, y1, param);
 }
 
 extern "C" void drot_(
@@ -363,7 +371,7 @@ extern "C" void drot_(
         incy_ilp64 = &incy_value;
     }
 
-    reidblas::ilp64::drot(n_ilp64, x, incx_ilp64, y, incy_ilp64, c, s);
+    backend().drot(n_ilp64, x, incx_ilp64, y, incy_ilp64, c, s);
 }
 
 extern "C" void drotm_(
@@ -393,7 +401,7 @@ extern "C" void drotm_(
         incy_ilp64 = &incy_value;
     }
 
-    reidblas::ilp64::drotm(n_ilp64, x, incx_ilp64, y, incy_ilp64, param);
+    backend().drotm(n_ilp64, x, incx_ilp64, y, incy_ilp64, param);
 }
 
 extern "C" void dswap_(
@@ -422,7 +430,7 @@ extern "C" void dswap_(
         incy_ilp64 = &incy_value;
     }
 
-    reidblas::ilp64::dswap(n_ilp64, x, incx_ilp64, y, incy_ilp64);
+    backend().dswap(n_ilp64, x, incx_ilp64, y, incy_ilp64);
 }
 
 extern "C" void dscal_(
@@ -444,7 +452,7 @@ extern "C" void dscal_(
         incx_ilp64 = &incx_value;
     }
 
-    reidblas::ilp64::dscal(n_ilp64, alpha, x, incx_ilp64);
+    backend().dscal(n_ilp64, alpha, x, incx_ilp64);
 }
 
 extern "C" void dcopy_(
@@ -473,7 +481,7 @@ extern "C" void dcopy_(
         incy_ilp64 = &incy_value;
     }
 
-    reidblas::ilp64::dcopy(n_ilp64, x, incx_ilp64, y, incy_ilp64);
+    backend().dcopy(n_ilp64, x, incx_ilp64, y, incy_ilp64);
 }
 
 extern "C" void daxpy_(
@@ -503,7 +511,7 @@ extern "C" void daxpy_(
         incy_ilp64 = &incy_value;
     }
 
-    reidblas::ilp64::daxpy(n_ilp64, alpha, x, incx_ilp64, y, incy_ilp64);
+    backend().daxpy(n_ilp64, alpha, x, incx_ilp64, y, incy_ilp64);
 }
 
 extern "C" double ddot_(
@@ -532,7 +540,7 @@ extern "C" double ddot_(
         incy_ilp64 = &incy_value;
     }
 
-    return reidblas::ilp64::ddot(n_ilp64, x, incx_ilp64, y, incy_ilp64);
+    return backend().ddot(n_ilp64, x, incx_ilp64, y, incy_ilp64);
 }
 
 extern "C" double dsdot_(
@@ -561,7 +569,7 @@ extern "C" double dsdot_(
         incy_ilp64 = &incy_value;
     }
 
-    return reidblas::ilp64::dsdot(n_ilp64, x, incx_ilp64, y, incy_ilp64);
+    return backend().dsdot(n_ilp64, x, incx_ilp64, y, incy_ilp64);
 }
 
 extern "C" double dnrm2_(
@@ -582,7 +590,7 @@ extern "C" double dnrm2_(
         incx_ilp64 = &incx_value;
     }
 
-    return reidblas::ilp64::dnrm2(n_ilp64, x, incx_ilp64);
+    return backend().dnrm2(n_ilp64, x, incx_ilp64);
 }
 
 extern "C" double dasum_(
@@ -603,7 +611,7 @@ extern "C" double dasum_(
         incx_ilp64 = &incx_value;
     }
 
-    return reidblas::ilp64::dasum(n_ilp64, x, incx_ilp64);
+    return backend().dasum(n_ilp64, x, incx_ilp64);
 }
 
 extern "C" reidblas_blas_int idamax_(
@@ -624,7 +632,7 @@ extern "C" reidblas_blas_int idamax_(
         incx_ilp64 = &incx_value;
     }
 
-    auto result = reidblas::ilp64::idamax(n_ilp64, x, incx_ilp64);
+    auto result = backend().idamax(n_ilp64, x, incx_ilp64);
     return static_cast<reidblas_blas_int>(result);
 }
 
@@ -634,7 +642,7 @@ extern "C" void crotg_(
     float *c,
     reidblas_complex_float *s
 ) {
-    reidblas::ilp64::crotg(a, b, c, s);
+    backend().crotg(a, b, c, s);
 }
 
 extern "C" void csrot_(
@@ -665,7 +673,7 @@ extern "C" void csrot_(
         incy_ilp64 = &incy_value;
     }
 
-    reidblas::ilp64::csrot(n_ilp64, x, incx_ilp64, y, incy_ilp64, c, s);
+    backend().csrot(n_ilp64, x, incx_ilp64, y, incy_ilp64, c, s);
 }
 
 extern "C" void csscal_(
@@ -687,7 +695,7 @@ extern "C" void csscal_(
         incx_ilp64 = &incx_value;
     }
 
-    reidblas::ilp64::csscal(n_ilp64, alpha, x, incx_ilp64);
+    backend().csscal(n_ilp64, alpha, x, incx_ilp64);
 }
 
 extern "C" void cscal_(
@@ -709,7 +717,7 @@ extern "C" void cscal_(
         incx_ilp64 = &incx_value;
     }
 
-    reidblas::ilp64::cscal(n_ilp64, alpha, x, incx_ilp64);
+    backend().cscal(n_ilp64, alpha, x, incx_ilp64);
 }
 
 extern "C" void cswap_(
@@ -738,7 +746,7 @@ extern "C" void cswap_(
         incy_ilp64 = &incy_value;
     }
 
-    reidblas::ilp64::cswap(n_ilp64, x, incx_ilp64, y, incy_ilp64);
+    backend().cswap(n_ilp64, x, incx_ilp64, y, incy_ilp64);
 }
 
 extern "C" void ccopy_(
@@ -767,7 +775,7 @@ extern "C" void ccopy_(
         incy_ilp64 = &incy_value;
     }
 
-    reidblas::ilp64::ccopy(n_ilp64, x, incx_ilp64, y, incy_ilp64);
+    backend().ccopy(n_ilp64, x, incx_ilp64, y, incy_ilp64);
 }
 
 extern "C" void caxpy_(
@@ -797,7 +805,7 @@ extern "C" void caxpy_(
         incy_ilp64 = &incy_value;
     }
 
-    reidblas::ilp64::caxpy(n_ilp64, alpha, x, incx_ilp64, y, incy_ilp64);
+    backend().caxpy(n_ilp64, alpha, x, incx_ilp64, y, incy_ilp64);
 }
 
 extern "C" reidblas_complex_float cdotu_(
@@ -826,7 +834,7 @@ extern "C" reidblas_complex_float cdotu_(
         incy_ilp64 = &incy_value;
     }
 
-    return reidblas::ilp64::cdotu(n_ilp64, x, incx_ilp64, y, incy_ilp64);
+    return backend().cdotu(n_ilp64, x, incx_ilp64, y, incy_ilp64);
 }
 
 extern "C" reidblas_complex_float cdotc_(
@@ -855,7 +863,7 @@ extern "C" reidblas_complex_float cdotc_(
         incy_ilp64 = &incy_value;
     }
 
-    return reidblas::ilp64::cdotc(n_ilp64, x, incx_ilp64, y, incy_ilp64);
+    return backend().cdotc(n_ilp64, x, incx_ilp64, y, incy_ilp64);
 }
 
 extern "C" float scnrm2_(
@@ -876,7 +884,7 @@ extern "C" float scnrm2_(
         incx_ilp64 = &incx_value;
     }
 
-    return reidblas::ilp64::scnrm2(n_ilp64, x, incx_ilp64);
+    return backend().scnrm2(n_ilp64, x, incx_ilp64);
 }
 
 extern "C" float scasum_(
@@ -897,7 +905,7 @@ extern "C" float scasum_(
         incx_ilp64 = &incx_value;
     }
 
-    return reidblas::ilp64::scasum(n_ilp64, x, incx_ilp64);
+    return backend().scasum(n_ilp64, x, incx_ilp64);
 }
 
 extern "C" reidblas_blas_int icamax_(
@@ -918,7 +926,7 @@ extern "C" reidblas_blas_int icamax_(
         incx_ilp64 = &incx_value;
     }
 
-    auto result = reidblas::ilp64::icamax(n_ilp64, x, incx_ilp64);
+    auto result = backend().icamax(n_ilp64, x, incx_ilp64);
     return static_cast<reidblas_blas_int>(result);
 }
 
@@ -928,7 +936,7 @@ extern "C" void zrotg_(
     double *c,
     reidblas_complex_double *s
 ) {
-    reidblas::ilp64::zrotg(a, b, c, s);
+    backend().zrotg(a, b, c, s);
 }
 
 extern "C" void zdrot_(
@@ -959,7 +967,7 @@ extern "C" void zdrot_(
         incy_ilp64 = &incy_value;
     }
 
-    reidblas::ilp64::zdrot(n_ilp64, x, incx_ilp64, y, incy_ilp64, c, s);
+    backend().zdrot(n_ilp64, x, incx_ilp64, y, incy_ilp64, c, s);
 }
 
 extern "C" void zdscal_(
@@ -981,7 +989,7 @@ extern "C" void zdscal_(
         incx_ilp64 = &incx_value;
     }
 
-    reidblas::ilp64::zdscal(n_ilp64, alpha, x, incx_ilp64);
+    backend().zdscal(n_ilp64, alpha, x, incx_ilp64);
 }
 
 extern "C" void zscal_(
@@ -1003,7 +1011,7 @@ extern "C" void zscal_(
         incx_ilp64 = &incx_value;
     }
 
-    reidblas::ilp64::zscal(n_ilp64, alpha, x, incx_ilp64);
+    backend().zscal(n_ilp64, alpha, x, incx_ilp64);
 }
 
 extern "C" void zswap_(
@@ -1032,7 +1040,7 @@ extern "C" void zswap_(
         incy_ilp64 = &incy_value;
     }
 
-    reidblas::ilp64::zswap(n_ilp64, x, incx_ilp64, y, incy_ilp64);
+    backend().zswap(n_ilp64, x, incx_ilp64, y, incy_ilp64);
 }
 
 extern "C" void zcopy_(
@@ -1061,7 +1069,7 @@ extern "C" void zcopy_(
         incy_ilp64 = &incy_value;
     }
 
-    reidblas::ilp64::zcopy(n_ilp64, x, incx_ilp64, y, incy_ilp64);
+    backend().zcopy(n_ilp64, x, incx_ilp64, y, incy_ilp64);
 }
 
 extern "C" void zaxpy_(
@@ -1091,7 +1099,7 @@ extern "C" void zaxpy_(
         incy_ilp64 = &incy_value;
     }
 
-    reidblas::ilp64::zaxpy(n_ilp64, alpha, x, incx_ilp64, y, incy_ilp64);
+    backend().zaxpy(n_ilp64, alpha, x, incx_ilp64, y, incy_ilp64);
 }
 
 extern "C" reidblas_complex_double zdotu_(
@@ -1120,7 +1128,7 @@ extern "C" reidblas_complex_double zdotu_(
         incy_ilp64 = &incy_value;
     }
 
-    return reidblas::ilp64::zdotu(n_ilp64, x, incx_ilp64, y, incy_ilp64);
+    return backend().zdotu(n_ilp64, x, incx_ilp64, y, incy_ilp64);
 }
 
 extern "C" reidblas_complex_double zdotc_(
@@ -1149,7 +1157,7 @@ extern "C" reidblas_complex_double zdotc_(
         incy_ilp64 = &incy_value;
     }
 
-    return reidblas::ilp64::zdotc(n_ilp64, x, incx_ilp64, y, incy_ilp64);
+    return backend().zdotc(n_ilp64, x, incx_ilp64, y, incy_ilp64);
 }
 
 extern "C" double dznrm2_(
@@ -1170,7 +1178,7 @@ extern "C" double dznrm2_(
         incx_ilp64 = &incx_value;
     }
 
-    return reidblas::ilp64::dznrm2(n_ilp64, x, incx_ilp64);
+    return backend().dznrm2(n_ilp64, x, incx_ilp64);
 }
 
 extern "C" double dzasum_(
@@ -1191,7 +1199,7 @@ extern "C" double dzasum_(
         incx_ilp64 = &incx_value;
     }
 
-    return reidblas::ilp64::dzasum(n_ilp64, x, incx_ilp64);
+    return backend().dzasum(n_ilp64, x, incx_ilp64);
 }
 
 extern "C" reidblas_blas_int izamax_(
@@ -1212,7 +1220,7 @@ extern "C" reidblas_blas_int izamax_(
         incx_ilp64 = &incx_value;
     }
 
-    auto result = reidblas::ilp64::izamax(n_ilp64, x, incx_ilp64);
+    auto result = backend().izamax(n_ilp64, x, incx_ilp64);
     return static_cast<reidblas_blas_int>(result);
 }
 
@@ -1260,7 +1268,7 @@ extern "C" void sgemv_(
         incy_ilp64 = &incy_value;
     }
 
-    reidblas::ilp64::sgemv(trans, m_ilp64, n_ilp64, alpha, a, lda_ilp64, x, incx_ilp64, beta, y, incy_ilp64);
+    backend().sgemv(trans, m_ilp64, n_ilp64, alpha, a, lda_ilp64, x, incx_ilp64, beta, y, incy_ilp64);
 }
 
 extern "C" void sgbmv_(
@@ -1321,7 +1329,7 @@ extern "C" void sgbmv_(
         incy_ilp64 = &incy_value;
     }
 
-    reidblas::ilp64::sgbmv(trans, m_ilp64, n_ilp64, kl_ilp64, ku_ilp64, alpha, a, lda_ilp64, x, incx_ilp64, beta, y, incy_ilp64);
+    backend().sgbmv(trans, m_ilp64, n_ilp64, kl_ilp64, ku_ilp64, alpha, a, lda_ilp64, x, incx_ilp64, beta, y, incy_ilp64);
 }
 
 extern "C" void ssymv_(
@@ -1361,7 +1369,7 @@ extern "C" void ssymv_(
         incy_ilp64 = &incy_value;
     }
 
-    reidblas::ilp64::ssymv(uplo, n_ilp64, alpha, a, lda_ilp64, x, incx_ilp64, beta, y, incy_ilp64);
+    backend().ssymv(uplo, n_ilp64, alpha, a, lda_ilp64, x, incx_ilp64, beta, y, incy_ilp64);
 }
 
 extern "C" void ssbmv_(
@@ -1408,7 +1416,7 @@ extern "C" void ssbmv_(
         incy_ilp64 = &incy_value;
     }
 
-    reidblas::ilp64::ssbmv(uplo, n_ilp64, k_ilp64, alpha, a, lda_ilp64, x, incx_ilp64, beta, y, incy_ilp64);
+    backend().ssbmv(uplo, n_ilp64, k_ilp64, alpha, a, lda_ilp64, x, incx_ilp64, beta, y, incy_ilp64);
 }
 
 extern "C" void sspmv_(
@@ -1441,7 +1449,7 @@ extern "C" void sspmv_(
         incy_ilp64 = &incy_value;
     }
 
-    reidblas::ilp64::sspmv(uplo, n_ilp64, alpha, ap, x, incx_ilp64, beta, y, incy_ilp64);
+    backend().sspmv(uplo, n_ilp64, alpha, ap, x, incx_ilp64, beta, y, incy_ilp64);
 }
 
 extern "C" void strmv_(
@@ -1473,7 +1481,7 @@ extern "C" void strmv_(
         incx_ilp64 = &incx_value;
     }
 
-    reidblas::ilp64::strmv(uplo, trans, diag, n_ilp64, a, lda_ilp64, x, incx_ilp64);
+    backend().strmv(uplo, trans, diag, n_ilp64, a, lda_ilp64, x, incx_ilp64);
 }
 
 extern "C" void stbmv_(
@@ -1512,7 +1520,7 @@ extern "C" void stbmv_(
         incx_ilp64 = &incx_value;
     }
 
-    reidblas::ilp64::stbmv(uplo, trans, diag, n_ilp64, k_ilp64, a, lda_ilp64, x, incx_ilp64);
+    backend().stbmv(uplo, trans, diag, n_ilp64, k_ilp64, a, lda_ilp64, x, incx_ilp64);
 }
 
 extern "C" void stpmv_(
@@ -1537,7 +1545,7 @@ extern "C" void stpmv_(
         incx_ilp64 = &incx_value;
     }
 
-    reidblas::ilp64::stpmv(uplo, trans, diag, n_ilp64, ap, x, incx_ilp64);
+    backend().stpmv(uplo, trans, diag, n_ilp64, ap, x, incx_ilp64);
 }
 
 extern "C" void strsv_(
@@ -1569,7 +1577,7 @@ extern "C" void strsv_(
         incx_ilp64 = &incx_value;
     }
 
-    reidblas::ilp64::strsv(uplo, trans, diag, n_ilp64, a, lda_ilp64, x, incx_ilp64);
+    backend().strsv(uplo, trans, diag, n_ilp64, a, lda_ilp64, x, incx_ilp64);
 }
 
 extern "C" void stbsv_(
@@ -1608,7 +1616,7 @@ extern "C" void stbsv_(
         incx_ilp64 = &incx_value;
     }
 
-    reidblas::ilp64::stbsv(uplo, trans, diag, n_ilp64, k_ilp64, a, lda_ilp64, x, incx_ilp64);
+    backend().stbsv(uplo, trans, diag, n_ilp64, k_ilp64, a, lda_ilp64, x, incx_ilp64);
 }
 
 extern "C" void stpsv_(
@@ -1633,7 +1641,7 @@ extern "C" void stpsv_(
         incx_ilp64 = &incx_value;
     }
 
-    reidblas::ilp64::stpsv(uplo, trans, diag, n_ilp64, ap, x, incx_ilp64);
+    backend().stpsv(uplo, trans, diag, n_ilp64, ap, x, incx_ilp64);
 }
 
 extern "C" void sger_(
@@ -1678,7 +1686,7 @@ extern "C" void sger_(
         lda_ilp64 = &lda_value;
     }
 
-    reidblas::ilp64::sger(m_ilp64, n_ilp64, alpha, x, incx_ilp64, y, incy_ilp64, a, lda_ilp64);
+    backend().sger(m_ilp64, n_ilp64, alpha, x, incx_ilp64, y, incy_ilp64, a, lda_ilp64);
 }
 
 extern "C" void sspr_(
@@ -1702,7 +1710,7 @@ extern "C" void sspr_(
         incx_ilp64 = &incx_value;
     }
 
-    reidblas::ilp64::sspr(uplo, n_ilp64, alpha, x, incx_ilp64, ap);
+    backend().sspr(uplo, n_ilp64, alpha, x, incx_ilp64, ap);
 }
 
 extern "C" void ssyr_(
@@ -1733,7 +1741,7 @@ extern "C" void ssyr_(
         lda_ilp64 = &lda_value;
     }
 
-    reidblas::ilp64::ssyr(uplo, n_ilp64, alpha, x, incx_ilp64, a, lda_ilp64);
+    backend().ssyr(uplo, n_ilp64, alpha, x, incx_ilp64, a, lda_ilp64);
 }
 
 extern "C" void sspr2_(
@@ -1765,7 +1773,7 @@ extern "C" void sspr2_(
         incy_ilp64 = &incy_value;
     }
 
-    reidblas::ilp64::sspr2(uplo, n_ilp64, alpha, x, incx_ilp64, y, incy_ilp64, ap);
+    backend().sspr2(uplo, n_ilp64, alpha, x, incx_ilp64, y, incy_ilp64, ap);
 }
 
 extern "C" void ssyr2_(
@@ -1804,7 +1812,7 @@ extern "C" void ssyr2_(
         lda_ilp64 = &lda_value;
     }
 
-    reidblas::ilp64::ssyr2(uplo, n_ilp64, alpha, x, incx_ilp64, y, incy_ilp64, a, lda_ilp64);
+    backend().ssyr2(uplo, n_ilp64, alpha, x, incx_ilp64, y, incy_ilp64, a, lda_ilp64);
 }
 
 extern "C" void dgemv_(
@@ -1851,7 +1859,7 @@ extern "C" void dgemv_(
         incy_ilp64 = &incy_value;
     }
 
-    reidblas::ilp64::dgemv(trans, m_ilp64, n_ilp64, alpha, a, lda_ilp64, x, incx_ilp64, beta, y, incy_ilp64);
+    backend().dgemv(trans, m_ilp64, n_ilp64, alpha, a, lda_ilp64, x, incx_ilp64, beta, y, incy_ilp64);
 }
 
 extern "C" void dgbmv_(
@@ -1912,7 +1920,7 @@ extern "C" void dgbmv_(
         incy_ilp64 = &incy_value;
     }
 
-    reidblas::ilp64::dgbmv(trans, m_ilp64, n_ilp64, kl_ilp64, ku_ilp64, alpha, a, lda_ilp64, x, incx_ilp64, beta, y, incy_ilp64);
+    backend().dgbmv(trans, m_ilp64, n_ilp64, kl_ilp64, ku_ilp64, alpha, a, lda_ilp64, x, incx_ilp64, beta, y, incy_ilp64);
 }
 
 extern "C" void dsymv_(
@@ -1952,7 +1960,7 @@ extern "C" void dsymv_(
         incy_ilp64 = &incy_value;
     }
 
-    reidblas::ilp64::dsymv(uplo, n_ilp64, alpha, a, lda_ilp64, x, incx_ilp64, beta, y, incy_ilp64);
+    backend().dsymv(uplo, n_ilp64, alpha, a, lda_ilp64, x, incx_ilp64, beta, y, incy_ilp64);
 }
 
 extern "C" void dsbmv_(
@@ -1999,7 +2007,7 @@ extern "C" void dsbmv_(
         incy_ilp64 = &incy_value;
     }
 
-    reidblas::ilp64::dsbmv(uplo, n_ilp64, k_ilp64, alpha, a, lda_ilp64, x, incx_ilp64, beta, y, incy_ilp64);
+    backend().dsbmv(uplo, n_ilp64, k_ilp64, alpha, a, lda_ilp64, x, incx_ilp64, beta, y, incy_ilp64);
 }
 
 extern "C" void dspmv_(
@@ -2032,7 +2040,7 @@ extern "C" void dspmv_(
         incy_ilp64 = &incy_value;
     }
 
-    reidblas::ilp64::dspmv(uplo, n_ilp64, alpha, ap, x, incx_ilp64, beta, y, incy_ilp64);
+    backend().dspmv(uplo, n_ilp64, alpha, ap, x, incx_ilp64, beta, y, incy_ilp64);
 }
 
 extern "C" void dtrmv_(
@@ -2064,7 +2072,7 @@ extern "C" void dtrmv_(
         incx_ilp64 = &incx_value;
     }
 
-    reidblas::ilp64::dtrmv(uplo, trans, diag, n_ilp64, a, lda_ilp64, x, incx_ilp64);
+    backend().dtrmv(uplo, trans, diag, n_ilp64, a, lda_ilp64, x, incx_ilp64);
 }
 
 extern "C" void dtbmv_(
@@ -2103,7 +2111,7 @@ extern "C" void dtbmv_(
         incx_ilp64 = &incx_value;
     }
 
-    reidblas::ilp64::dtbmv(uplo, trans, diag, n_ilp64, k_ilp64, a, lda_ilp64, x, incx_ilp64);
+    backend().dtbmv(uplo, trans, diag, n_ilp64, k_ilp64, a, lda_ilp64, x, incx_ilp64);
 }
 
 extern "C" void dtpmv_(
@@ -2128,7 +2136,7 @@ extern "C" void dtpmv_(
         incx_ilp64 = &incx_value;
     }
 
-    reidblas::ilp64::dtpmv(uplo, trans, diag, n_ilp64, ap, x, incx_ilp64);
+    backend().dtpmv(uplo, trans, diag, n_ilp64, ap, x, incx_ilp64);
 }
 
 extern "C" void dtrsv_(
@@ -2160,7 +2168,7 @@ extern "C" void dtrsv_(
         incx_ilp64 = &incx_value;
     }
 
-    reidblas::ilp64::dtrsv(uplo, trans, diag, n_ilp64, a, lda_ilp64, x, incx_ilp64);
+    backend().dtrsv(uplo, trans, diag, n_ilp64, a, lda_ilp64, x, incx_ilp64);
 }
 
 extern "C" void dtbsv_(
@@ -2199,7 +2207,7 @@ extern "C" void dtbsv_(
         incx_ilp64 = &incx_value;
     }
 
-    reidblas::ilp64::dtbsv(uplo, trans, diag, n_ilp64, k_ilp64, a, lda_ilp64, x, incx_ilp64);
+    backend().dtbsv(uplo, trans, diag, n_ilp64, k_ilp64, a, lda_ilp64, x, incx_ilp64);
 }
 
 extern "C" void dtpsv_(
@@ -2224,7 +2232,7 @@ extern "C" void dtpsv_(
         incx_ilp64 = &incx_value;
     }
 
-    reidblas::ilp64::dtpsv(uplo, trans, diag, n_ilp64, ap, x, incx_ilp64);
+    backend().dtpsv(uplo, trans, diag, n_ilp64, ap, x, incx_ilp64);
 }
 
 extern "C" void dger_(
@@ -2269,7 +2277,7 @@ extern "C" void dger_(
         lda_ilp64 = &lda_value;
     }
 
-    reidblas::ilp64::dger(m_ilp64, n_ilp64, alpha, x, incx_ilp64, y, incy_ilp64, a, lda_ilp64);
+    backend().dger(m_ilp64, n_ilp64, alpha, x, incx_ilp64, y, incy_ilp64, a, lda_ilp64);
 }
 
 extern "C" void dspr_(
@@ -2293,7 +2301,7 @@ extern "C" void dspr_(
         incx_ilp64 = &incx_value;
     }
 
-    reidblas::ilp64::dspr(uplo, n_ilp64, alpha, x, incx_ilp64, ap);
+    backend().dspr(uplo, n_ilp64, alpha, x, incx_ilp64, ap);
 }
 
 extern "C" void dsyr_(
@@ -2324,7 +2332,7 @@ extern "C" void dsyr_(
         lda_ilp64 = &lda_value;
     }
 
-    reidblas::ilp64::dsyr(uplo, n_ilp64, alpha, x, incx_ilp64, a, lda_ilp64);
+    backend().dsyr(uplo, n_ilp64, alpha, x, incx_ilp64, a, lda_ilp64);
 }
 
 extern "C" void dspr2_(
@@ -2356,7 +2364,7 @@ extern "C" void dspr2_(
         incy_ilp64 = &incy_value;
     }
 
-    reidblas::ilp64::dspr2(uplo, n_ilp64, alpha, x, incx_ilp64, y, incy_ilp64, ap);
+    backend().dspr2(uplo, n_ilp64, alpha, x, incx_ilp64, y, incy_ilp64, ap);
 }
 
 extern "C" void dsyr2_(
@@ -2395,7 +2403,7 @@ extern "C" void dsyr2_(
         lda_ilp64 = &lda_value;
     }
 
-    reidblas::ilp64::dsyr2(uplo, n_ilp64, alpha, x, incx_ilp64, y, incy_ilp64, a, lda_ilp64);
+    backend().dsyr2(uplo, n_ilp64, alpha, x, incx_ilp64, y, incy_ilp64, a, lda_ilp64);
 }
 
 extern "C" void cgemv_(
@@ -2442,7 +2450,7 @@ extern "C" void cgemv_(
         incy_ilp64 = &incy_value;
     }
 
-    reidblas::ilp64::cgemv(trans, m_ilp64, n_ilp64, alpha, a, lda_ilp64, x, incx_ilp64, beta, y, incy_ilp64);
+    backend().cgemv(trans, m_ilp64, n_ilp64, alpha, a, lda_ilp64, x, incx_ilp64, beta, y, incy_ilp64);
 }
 
 extern "C" void cgbmv_(
@@ -2503,7 +2511,7 @@ extern "C" void cgbmv_(
         incy_ilp64 = &incy_value;
     }
 
-    reidblas::ilp64::cgbmv(trans, m_ilp64, n_ilp64, kl_ilp64, ku_ilp64, alpha, a, lda_ilp64, x, incx_ilp64, beta, y, incy_ilp64);
+    backend().cgbmv(trans, m_ilp64, n_ilp64, kl_ilp64, ku_ilp64, alpha, a, lda_ilp64, x, incx_ilp64, beta, y, incy_ilp64);
 }
 
 extern "C" void chemv_(
@@ -2543,7 +2551,7 @@ extern "C" void chemv_(
         incy_ilp64 = &incy_value;
     }
 
-    reidblas::ilp64::chemv(uplo, n_ilp64, alpha, a, lda_ilp64, x, incx_ilp64, beta, y, incy_ilp64);
+    backend().chemv(uplo, n_ilp64, alpha, a, lda_ilp64, x, incx_ilp64, beta, y, incy_ilp64);
 }
 
 extern "C" void chbmv_(
@@ -2590,7 +2598,7 @@ extern "C" void chbmv_(
         incy_ilp64 = &incy_value;
     }
 
-    reidblas::ilp64::chbmv(uplo, n_ilp64, k_ilp64, alpha, a, lda_ilp64, x, incx_ilp64, beta, y, incy_ilp64);
+    backend().chbmv(uplo, n_ilp64, k_ilp64, alpha, a, lda_ilp64, x, incx_ilp64, beta, y, incy_ilp64);
 }
 
 extern "C" void chpmv_(
@@ -2623,7 +2631,7 @@ extern "C" void chpmv_(
         incy_ilp64 = &incy_value;
     }
 
-    reidblas::ilp64::chpmv(uplo, n_ilp64, alpha, ap, x, incx_ilp64, beta, y, incy_ilp64);
+    backend().chpmv(uplo, n_ilp64, alpha, ap, x, incx_ilp64, beta, y, incy_ilp64);
 }
 
 extern "C" void ctrmv_(
@@ -2655,7 +2663,7 @@ extern "C" void ctrmv_(
         incx_ilp64 = &incx_value;
     }
 
-    reidblas::ilp64::ctrmv(uplo, trans, diag, n_ilp64, a, lda_ilp64, x, incx_ilp64);
+    backend().ctrmv(uplo, trans, diag, n_ilp64, a, lda_ilp64, x, incx_ilp64);
 }
 
 extern "C" void ctbmv_(
@@ -2694,7 +2702,7 @@ extern "C" void ctbmv_(
         incx_ilp64 = &incx_value;
     }
 
-    reidblas::ilp64::ctbmv(uplo, trans, diag, n_ilp64, k_ilp64, a, lda_ilp64, x, incx_ilp64);
+    backend().ctbmv(uplo, trans, diag, n_ilp64, k_ilp64, a, lda_ilp64, x, incx_ilp64);
 }
 
 extern "C" void ctpmv_(
@@ -2719,7 +2727,7 @@ extern "C" void ctpmv_(
         incx_ilp64 = &incx_value;
     }
 
-    reidblas::ilp64::ctpmv(uplo, trans, diag, n_ilp64, ap, x, incx_ilp64);
+    backend().ctpmv(uplo, trans, diag, n_ilp64, ap, x, incx_ilp64);
 }
 
 extern "C" void ctrsv_(
@@ -2751,7 +2759,7 @@ extern "C" void ctrsv_(
         incx_ilp64 = &incx_value;
     }
 
-    reidblas::ilp64::ctrsv(uplo, trans, diag, n_ilp64, a, lda_ilp64, x, incx_ilp64);
+    backend().ctrsv(uplo, trans, diag, n_ilp64, a, lda_ilp64, x, incx_ilp64);
 }
 
 extern "C" void ctbsv_(
@@ -2790,7 +2798,7 @@ extern "C" void ctbsv_(
         incx_ilp64 = &incx_value;
     }
 
-    reidblas::ilp64::ctbsv(uplo, trans, diag, n_ilp64, k_ilp64, a, lda_ilp64, x, incx_ilp64);
+    backend().ctbsv(uplo, trans, diag, n_ilp64, k_ilp64, a, lda_ilp64, x, incx_ilp64);
 }
 
 extern "C" void ctpsv_(
@@ -2815,7 +2823,7 @@ extern "C" void ctpsv_(
         incx_ilp64 = &incx_value;
     }
 
-    reidblas::ilp64::ctpsv(uplo, trans, diag, n_ilp64, ap, x, incx_ilp64);
+    backend().ctpsv(uplo, trans, diag, n_ilp64, ap, x, incx_ilp64);
 }
 
 extern "C" void cgerc_(
@@ -2860,7 +2868,7 @@ extern "C" void cgerc_(
         lda_ilp64 = &lda_value;
     }
 
-    reidblas::ilp64::cgerc(m_ilp64, n_ilp64, alpha, x, incx_ilp64, y, incy_ilp64, a, lda_ilp64);
+    backend().cgerc(m_ilp64, n_ilp64, alpha, x, incx_ilp64, y, incy_ilp64, a, lda_ilp64);
 }
 
 extern "C" void cgeru_(
@@ -2905,7 +2913,7 @@ extern "C" void cgeru_(
         lda_ilp64 = &lda_value;
     }
 
-    reidblas::ilp64::cgeru(m_ilp64, n_ilp64, alpha, x, incx_ilp64, y, incy_ilp64, a, lda_ilp64);
+    backend().cgeru(m_ilp64, n_ilp64, alpha, x, incx_ilp64, y, incy_ilp64, a, lda_ilp64);
 }
 
 extern "C" void cher_(
@@ -2936,7 +2944,7 @@ extern "C" void cher_(
         lda_ilp64 = &lda_value;
     }
 
-    reidblas::ilp64::cher(uplo, n_ilp64, alpha, x, incx_ilp64, a, lda_ilp64);
+    backend().cher(uplo, n_ilp64, alpha, x, incx_ilp64, a, lda_ilp64);
 }
 
 extern "C" void chpr_(
@@ -2960,7 +2968,7 @@ extern "C" void chpr_(
         incx_ilp64 = &incx_value;
     }
 
-    reidblas::ilp64::chpr(uplo, n_ilp64, alpha, x, incx_ilp64, ap);
+    backend().chpr(uplo, n_ilp64, alpha, x, incx_ilp64, ap);
 }
 
 extern "C" void cher2_(
@@ -2999,7 +3007,7 @@ extern "C" void cher2_(
         lda_ilp64 = &lda_value;
     }
 
-    reidblas::ilp64::cher2(uplo, n_ilp64, alpha, x, incx_ilp64, y, incy_ilp64, a, lda_ilp64);
+    backend().cher2(uplo, n_ilp64, alpha, x, incx_ilp64, y, incy_ilp64, a, lda_ilp64);
 }
 
 extern "C" void chpr2_(
@@ -3031,7 +3039,7 @@ extern "C" void chpr2_(
         incy_ilp64 = &incy_value;
     }
 
-    reidblas::ilp64::chpr2(uplo, n_ilp64, alpha, x, incx_ilp64, y, incy_ilp64, ap);
+    backend().chpr2(uplo, n_ilp64, alpha, x, incx_ilp64, y, incy_ilp64, ap);
 }
 
 extern "C" void zgemv_(
@@ -3078,7 +3086,7 @@ extern "C" void zgemv_(
         incy_ilp64 = &incy_value;
     }
 
-    reidblas::ilp64::zgemv(trans, m_ilp64, n_ilp64, alpha, a, lda_ilp64, x, incx_ilp64, beta, y, incy_ilp64);
+    backend().zgemv(trans, m_ilp64, n_ilp64, alpha, a, lda_ilp64, x, incx_ilp64, beta, y, incy_ilp64);
 }
 
 extern "C" void zgbmv_(
@@ -3139,7 +3147,7 @@ extern "C" void zgbmv_(
         incy_ilp64 = &incy_value;
     }
 
-    reidblas::ilp64::zgbmv(trans, m_ilp64, n_ilp64, kl_ilp64, ku_ilp64, alpha, a, lda_ilp64, x, incx_ilp64, beta, y, incy_ilp64);
+    backend().zgbmv(trans, m_ilp64, n_ilp64, kl_ilp64, ku_ilp64, alpha, a, lda_ilp64, x, incx_ilp64, beta, y, incy_ilp64);
 }
 
 extern "C" void zhemv_(
@@ -3179,7 +3187,7 @@ extern "C" void zhemv_(
         incy_ilp64 = &incy_value;
     }
 
-    reidblas::ilp64::zhemv(uplo, n_ilp64, alpha, a, lda_ilp64, x, incx_ilp64, beta, y, incy_ilp64);
+    backend().zhemv(uplo, n_ilp64, alpha, a, lda_ilp64, x, incx_ilp64, beta, y, incy_ilp64);
 }
 
 extern "C" void zhbmv_(
@@ -3226,7 +3234,7 @@ extern "C" void zhbmv_(
         incy_ilp64 = &incy_value;
     }
 
-    reidblas::ilp64::zhbmv(uplo, n_ilp64, k_ilp64, alpha, a, lda_ilp64, x, incx_ilp64, beta, y, incy_ilp64);
+    backend().zhbmv(uplo, n_ilp64, k_ilp64, alpha, a, lda_ilp64, x, incx_ilp64, beta, y, incy_ilp64);
 }
 
 extern "C" void zhpmv_(
@@ -3259,7 +3267,7 @@ extern "C" void zhpmv_(
         incy_ilp64 = &incy_value;
     }
 
-    reidblas::ilp64::zhpmv(uplo, n_ilp64, alpha, ap, x, incx_ilp64, beta, y, incy_ilp64);
+    backend().zhpmv(uplo, n_ilp64, alpha, ap, x, incx_ilp64, beta, y, incy_ilp64);
 }
 
 extern "C" void ztrmv_(
@@ -3291,7 +3299,7 @@ extern "C" void ztrmv_(
         incx_ilp64 = &incx_value;
     }
 
-    reidblas::ilp64::ztrmv(uplo, trans, diag, n_ilp64, a, lda_ilp64, x, incx_ilp64);
+    backend().ztrmv(uplo, trans, diag, n_ilp64, a, lda_ilp64, x, incx_ilp64);
 }
 
 extern "C" void ztbmv_(
@@ -3330,7 +3338,7 @@ extern "C" void ztbmv_(
         incx_ilp64 = &incx_value;
     }
 
-    reidblas::ilp64::ztbmv(uplo, trans, diag, n_ilp64, k_ilp64, a, lda_ilp64, x, incx_ilp64);
+    backend().ztbmv(uplo, trans, diag, n_ilp64, k_ilp64, a, lda_ilp64, x, incx_ilp64);
 }
 
 extern "C" void ztpmv_(
@@ -3355,7 +3363,7 @@ extern "C" void ztpmv_(
         incx_ilp64 = &incx_value;
     }
 
-    reidblas::ilp64::ztpmv(uplo, trans, diag, n_ilp64, ap, x, incx_ilp64);
+    backend().ztpmv(uplo, trans, diag, n_ilp64, ap, x, incx_ilp64);
 }
 
 extern "C" void ztrsv_(
@@ -3387,7 +3395,7 @@ extern "C" void ztrsv_(
         incx_ilp64 = &incx_value;
     }
 
-    reidblas::ilp64::ztrsv(uplo, trans, diag, n_ilp64, a, lda_ilp64, x, incx_ilp64);
+    backend().ztrsv(uplo, trans, diag, n_ilp64, a, lda_ilp64, x, incx_ilp64);
 }
 
 extern "C" void ztbsv_(
@@ -3426,7 +3434,7 @@ extern "C" void ztbsv_(
         incx_ilp64 = &incx_value;
     }
 
-    reidblas::ilp64::ztbsv(uplo, trans, diag, n_ilp64, k_ilp64, a, lda_ilp64, x, incx_ilp64);
+    backend().ztbsv(uplo, trans, diag, n_ilp64, k_ilp64, a, lda_ilp64, x, incx_ilp64);
 }
 
 extern "C" void ztpsv_(
@@ -3451,7 +3459,7 @@ extern "C" void ztpsv_(
         incx_ilp64 = &incx_value;
     }
 
-    reidblas::ilp64::ztpsv(uplo, trans, diag, n_ilp64, ap, x, incx_ilp64);
+    backend().ztpsv(uplo, trans, diag, n_ilp64, ap, x, incx_ilp64);
 }
 
 extern "C" void zgerc_(
@@ -3496,7 +3504,7 @@ extern "C" void zgerc_(
         lda_ilp64 = &lda_value;
     }
 
-    reidblas::ilp64::zgerc(m_ilp64, n_ilp64, alpha, x, incx_ilp64, y, incy_ilp64, a, lda_ilp64);
+    backend().zgerc(m_ilp64, n_ilp64, alpha, x, incx_ilp64, y, incy_ilp64, a, lda_ilp64);
 }
 
 extern "C" void zgeru_(
@@ -3541,7 +3549,7 @@ extern "C" void zgeru_(
         lda_ilp64 = &lda_value;
     }
 
-    reidblas::ilp64::zgeru(m_ilp64, n_ilp64, alpha, x, incx_ilp64, y, incy_ilp64, a, lda_ilp64);
+    backend().zgeru(m_ilp64, n_ilp64, alpha, x, incx_ilp64, y, incy_ilp64, a, lda_ilp64);
 }
 
 extern "C" void zher_(
@@ -3572,7 +3580,7 @@ extern "C" void zher_(
         lda_ilp64 = &lda_value;
     }
 
-    reidblas::ilp64::zher(uplo, n_ilp64, alpha, x, incx_ilp64, a, lda_ilp64);
+    backend().zher(uplo, n_ilp64, alpha, x, incx_ilp64, a, lda_ilp64);
 }
 
 extern "C" void zhpr_(
@@ -3596,7 +3604,7 @@ extern "C" void zhpr_(
         incx_ilp64 = &incx_value;
     }
 
-    reidblas::ilp64::zhpr(uplo, n_ilp64, alpha, x, incx_ilp64, ap);
+    backend().zhpr(uplo, n_ilp64, alpha, x, incx_ilp64, ap);
 }
 
 extern "C" void zher2_(
@@ -3635,7 +3643,7 @@ extern "C" void zher2_(
         lda_ilp64 = &lda_value;
     }
 
-    reidblas::ilp64::zher2(uplo, n_ilp64, alpha, x, incx_ilp64, y, incy_ilp64, a, lda_ilp64);
+    backend().zher2(uplo, n_ilp64, alpha, x, incx_ilp64, y, incy_ilp64, a, lda_ilp64);
 }
 
 extern "C" void zhpr2_(
@@ -3667,7 +3675,7 @@ extern "C" void zhpr2_(
         incy_ilp64 = &incy_value;
     }
 
-    reidblas::ilp64::zhpr2(uplo, n_ilp64, alpha, x, incx_ilp64, y, incy_ilp64, ap);
+    backend().zhpr2(uplo, n_ilp64, alpha, x, incx_ilp64, y, incy_ilp64, ap);
 }
 
 extern "C" void sgemm_(
@@ -3722,7 +3730,7 @@ extern "C" void sgemm_(
         ldc_ilp64 = &ldc_value;
     }
 
-    reidblas::ilp64::sgemm(transa, transb, m_ilp64, n_ilp64, k_ilp64, alpha, a, lda_ilp64, b, ldb_ilp64, beta, c, ldc_ilp64);
+    backend().sgemm(transa, transb, m_ilp64, n_ilp64, k_ilp64, alpha, a, lda_ilp64, b, ldb_ilp64, beta, c, ldc_ilp64);
 }
 
 extern "C" void ssymm_(
@@ -3770,7 +3778,7 @@ extern "C" void ssymm_(
         ldc_ilp64 = &ldc_value;
     }
 
-    reidblas::ilp64::ssymm(side, uplo, m_ilp64, n_ilp64, alpha, a, lda_ilp64, b, ldb_ilp64, beta, c, ldc_ilp64);
+    backend().ssymm(side, uplo, m_ilp64, n_ilp64, alpha, a, lda_ilp64, b, ldb_ilp64, beta, c, ldc_ilp64);
 }
 
 extern "C" void ssyrk_(
@@ -3810,7 +3818,7 @@ extern "C" void ssyrk_(
         ldc_ilp64 = &ldc_value;
     }
 
-    reidblas::ilp64::ssyrk(uplo, trans, n_ilp64, k_ilp64, alpha, a, lda_ilp64, beta, c, ldc_ilp64);
+    backend().ssyrk(uplo, trans, n_ilp64, k_ilp64, alpha, a, lda_ilp64, beta, c, ldc_ilp64);
 }
 
 extern "C" void ssyr2k_(
@@ -3858,7 +3866,7 @@ extern "C" void ssyr2k_(
         ldc_ilp64 = &ldc_value;
     }
 
-    reidblas::ilp64::ssyr2k(uplo, trans, n_ilp64, k_ilp64, alpha, a, lda_ilp64, b, ldb_ilp64, beta, c, ldc_ilp64);
+    backend().ssyr2k(uplo, trans, n_ilp64, k_ilp64, alpha, a, lda_ilp64, b, ldb_ilp64, beta, c, ldc_ilp64);
 }
 
 extern "C" void strsm_(
@@ -3899,7 +3907,7 @@ extern "C" void strsm_(
         ldb_ilp64 = &ldb_value;
     }
 
-    reidblas::ilp64::strsm(side, uplo, transa, diag, m_ilp64, n_ilp64, alpha, a, lda_ilp64, b, ldb_ilp64);
+    backend().strsm(side, uplo, transa, diag, m_ilp64, n_ilp64, alpha, a, lda_ilp64, b, ldb_ilp64);
 }
 
 extern "C" void strmm_(
@@ -3940,7 +3948,7 @@ extern "C" void strmm_(
         ldb_ilp64 = &ldb_value;
     }
 
-    reidblas::ilp64::strmm(side, uplo, transa, diag, m_ilp64, n_ilp64, alpha, a, lda_ilp64, b, ldb_ilp64);
+    backend().strmm(side, uplo, transa, diag, m_ilp64, n_ilp64, alpha, a, lda_ilp64, b, ldb_ilp64);
 }
 
 extern "C" void dgemm_(
@@ -3995,7 +4003,7 @@ extern "C" void dgemm_(
         ldc_ilp64 = &ldc_value;
     }
 
-    reidblas::ilp64::dgemm(transa, transb, m_ilp64, n_ilp64, k_ilp64, alpha, a, lda_ilp64, b, ldb_ilp64, beta, c, ldc_ilp64);
+    backend().dgemm(transa, transb, m_ilp64, n_ilp64, k_ilp64, alpha, a, lda_ilp64, b, ldb_ilp64, beta, c, ldc_ilp64);
 }
 
 extern "C" void dsymm_(
@@ -4043,7 +4051,7 @@ extern "C" void dsymm_(
         ldc_ilp64 = &ldc_value;
     }
 
-    reidblas::ilp64::dsymm(side, uplo, m_ilp64, n_ilp64, alpha, a, lda_ilp64, b, ldb_ilp64, beta, c, ldc_ilp64);
+    backend().dsymm(side, uplo, m_ilp64, n_ilp64, alpha, a, lda_ilp64, b, ldb_ilp64, beta, c, ldc_ilp64);
 }
 
 extern "C" void dsyrk_(
@@ -4083,7 +4091,7 @@ extern "C" void dsyrk_(
         ldc_ilp64 = &ldc_value;
     }
 
-    reidblas::ilp64::dsyrk(uplo, trans, n_ilp64, k_ilp64, alpha, a, lda_ilp64, beta, c, ldc_ilp64);
+    backend().dsyrk(uplo, trans, n_ilp64, k_ilp64, alpha, a, lda_ilp64, beta, c, ldc_ilp64);
 }
 
 extern "C" void dsyr2k_(
@@ -4131,7 +4139,7 @@ extern "C" void dsyr2k_(
         ldc_ilp64 = &ldc_value;
     }
 
-    reidblas::ilp64::dsyr2k(uplo, trans, n_ilp64, k_ilp64, alpha, a, lda_ilp64, b, ldb_ilp64, beta, c, ldc_ilp64);
+    backend().dsyr2k(uplo, trans, n_ilp64, k_ilp64, alpha, a, lda_ilp64, b, ldb_ilp64, beta, c, ldc_ilp64);
 }
 
 extern "C" void dtrsm_(
@@ -4172,7 +4180,7 @@ extern "C" void dtrsm_(
         ldb_ilp64 = &ldb_value;
     }
 
-    reidblas::ilp64::dtrsm(side, uplo, transa, diag, m_ilp64, n_ilp64, alpha, a, lda_ilp64, b, ldb_ilp64);
+    backend().dtrsm(side, uplo, transa, diag, m_ilp64, n_ilp64, alpha, a, lda_ilp64, b, ldb_ilp64);
 }
 
 extern "C" void dtrmm_(
@@ -4213,7 +4221,7 @@ extern "C" void dtrmm_(
         ldb_ilp64 = &ldb_value;
     }
 
-    reidblas::ilp64::dtrmm(side, uplo, transa, diag, m_ilp64, n_ilp64, alpha, a, lda_ilp64, b, ldb_ilp64);
+    backend().dtrmm(side, uplo, transa, diag, m_ilp64, n_ilp64, alpha, a, lda_ilp64, b, ldb_ilp64);
 }
 
 extern "C" void cgemm_(
@@ -4268,7 +4276,7 @@ extern "C" void cgemm_(
         ldc_ilp64 = &ldc_value;
     }
 
-    reidblas::ilp64::cgemm(transa, transb, m_ilp64, n_ilp64, k_ilp64, alpha, a, lda_ilp64, b, ldb_ilp64, beta, c, ldc_ilp64);
+    backend().cgemm(transa, transb, m_ilp64, n_ilp64, k_ilp64, alpha, a, lda_ilp64, b, ldb_ilp64, beta, c, ldc_ilp64);
 }
 
 extern "C" void csymm_(
@@ -4316,7 +4324,7 @@ extern "C" void csymm_(
         ldc_ilp64 = &ldc_value;
     }
 
-    reidblas::ilp64::csymm(side, uplo, m_ilp64, n_ilp64, alpha, a, lda_ilp64, b, ldb_ilp64, beta, c, ldc_ilp64);
+    backend().csymm(side, uplo, m_ilp64, n_ilp64, alpha, a, lda_ilp64, b, ldb_ilp64, beta, c, ldc_ilp64);
 }
 
 extern "C" void chemm_(
@@ -4364,7 +4372,7 @@ extern "C" void chemm_(
         ldc_ilp64 = &ldc_value;
     }
 
-    reidblas::ilp64::chemm(side, uplo, m_ilp64, n_ilp64, alpha, a, lda_ilp64, b, ldb_ilp64, beta, c, ldc_ilp64);
+    backend().chemm(side, uplo, m_ilp64, n_ilp64, alpha, a, lda_ilp64, b, ldb_ilp64, beta, c, ldc_ilp64);
 }
 
 extern "C" void csyrk_(
@@ -4404,7 +4412,7 @@ extern "C" void csyrk_(
         ldc_ilp64 = &ldc_value;
     }
 
-    reidblas::ilp64::csyrk(uplo, trans, n_ilp64, k_ilp64, alpha, a, lda_ilp64, beta, c, ldc_ilp64);
+    backend().csyrk(uplo, trans, n_ilp64, k_ilp64, alpha, a, lda_ilp64, beta, c, ldc_ilp64);
 }
 
 extern "C" void cherk_(
@@ -4444,7 +4452,7 @@ extern "C" void cherk_(
         ldc_ilp64 = &ldc_value;
     }
 
-    reidblas::ilp64::cherk(uplo, trans, n_ilp64, k_ilp64, alpha, a, lda_ilp64, beta, c, ldc_ilp64);
+    backend().cherk(uplo, trans, n_ilp64, k_ilp64, alpha, a, lda_ilp64, beta, c, ldc_ilp64);
 }
 
 extern "C" void csyr2k_(
@@ -4492,7 +4500,7 @@ extern "C" void csyr2k_(
         ldc_ilp64 = &ldc_value;
     }
 
-    reidblas::ilp64::csyr2k(uplo, trans, n_ilp64, k_ilp64, alpha, a, lda_ilp64, b, ldb_ilp64, beta, c, ldc_ilp64);
+    backend().csyr2k(uplo, trans, n_ilp64, k_ilp64, alpha, a, lda_ilp64, b, ldb_ilp64, beta, c, ldc_ilp64);
 }
 
 extern "C" void cher2k_(
@@ -4540,7 +4548,7 @@ extern "C" void cher2k_(
         ldc_ilp64 = &ldc_value;
     }
 
-    reidblas::ilp64::cher2k(uplo, trans, n_ilp64, k_ilp64, alpha, a, lda_ilp64, b, ldb_ilp64, beta, c, ldc_ilp64);
+    backend().cher2k(uplo, trans, n_ilp64, k_ilp64, alpha, a, lda_ilp64, b, ldb_ilp64, beta, c, ldc_ilp64);
 }
 
 extern "C" void ctrsm_(
@@ -4581,7 +4589,7 @@ extern "C" void ctrsm_(
         ldb_ilp64 = &ldb_value;
     }
 
-    reidblas::ilp64::ctrsm(side, uplo, transa, diag, m_ilp64, n_ilp64, alpha, a, lda_ilp64, b, ldb_ilp64);
+    backend().ctrsm(side, uplo, transa, diag, m_ilp64, n_ilp64, alpha, a, lda_ilp64, b, ldb_ilp64);
 }
 
 extern "C" void ctrmm_(
@@ -4622,7 +4630,7 @@ extern "C" void ctrmm_(
         ldb_ilp64 = &ldb_value;
     }
 
-    reidblas::ilp64::ctrmm(side, uplo, transa, diag, m_ilp64, n_ilp64, alpha, a, lda_ilp64, b, ldb_ilp64);
+    backend().ctrmm(side, uplo, transa, diag, m_ilp64, n_ilp64, alpha, a, lda_ilp64, b, ldb_ilp64);
 }
 
 extern "C" void zgemm_(
@@ -4677,7 +4685,7 @@ extern "C" void zgemm_(
         ldc_ilp64 = &ldc_value;
     }
 
-    reidblas::ilp64::zgemm(transa, transb, m_ilp64, n_ilp64, k_ilp64, alpha, a, lda_ilp64, b, ldb_ilp64, beta, c, ldc_ilp64);
+    backend().zgemm(transa, transb, m_ilp64, n_ilp64, k_ilp64, alpha, a, lda_ilp64, b, ldb_ilp64, beta, c, ldc_ilp64);
 }
 
 extern "C" void zsymm_(
@@ -4725,7 +4733,7 @@ extern "C" void zsymm_(
         ldc_ilp64 = &ldc_value;
     }
 
-    reidblas::ilp64::zsymm(side, uplo, m_ilp64, n_ilp64, alpha, a, lda_ilp64, b, ldb_ilp64, beta, c, ldc_ilp64);
+    backend().zsymm(side, uplo, m_ilp64, n_ilp64, alpha, a, lda_ilp64, b, ldb_ilp64, beta, c, ldc_ilp64);
 }
 
 extern "C" void zhemm_(
@@ -4773,7 +4781,7 @@ extern "C" void zhemm_(
         ldc_ilp64 = &ldc_value;
     }
 
-    reidblas::ilp64::zhemm(side, uplo, m_ilp64, n_ilp64, alpha, a, lda_ilp64, b, ldb_ilp64, beta, c, ldc_ilp64);
+    backend().zhemm(side, uplo, m_ilp64, n_ilp64, alpha, a, lda_ilp64, b, ldb_ilp64, beta, c, ldc_ilp64);
 }
 
 extern "C" void zsyrk_(
@@ -4813,7 +4821,7 @@ extern "C" void zsyrk_(
         ldc_ilp64 = &ldc_value;
     }
 
-    reidblas::ilp64::zsyrk(uplo, trans, n_ilp64, k_ilp64, alpha, a, lda_ilp64, beta, c, ldc_ilp64);
+    backend().zsyrk(uplo, trans, n_ilp64, k_ilp64, alpha, a, lda_ilp64, beta, c, ldc_ilp64);
 }
 
 extern "C" void zherk_(
@@ -4853,7 +4861,7 @@ extern "C" void zherk_(
         ldc_ilp64 = &ldc_value;
     }
 
-    reidblas::ilp64::zherk(uplo, trans, n_ilp64, k_ilp64, alpha, a, lda_ilp64, beta, c, ldc_ilp64);
+    backend().zherk(uplo, trans, n_ilp64, k_ilp64, alpha, a, lda_ilp64, beta, c, ldc_ilp64);
 }
 
 extern "C" void zsyr2k_(
@@ -4901,7 +4909,7 @@ extern "C" void zsyr2k_(
         ldc_ilp64 = &ldc_value;
     }
 
-    reidblas::ilp64::zsyr2k(uplo, trans, n_ilp64, k_ilp64, alpha, a, lda_ilp64, b, ldb_ilp64, beta, c, ldc_ilp64);
+    backend().zsyr2k(uplo, trans, n_ilp64, k_ilp64, alpha, a, lda_ilp64, b, ldb_ilp64, beta, c, ldc_ilp64);
 }
 
 extern "C" void zher2k_(
@@ -4949,7 +4957,7 @@ extern "C" void zher2k_(
         ldc_ilp64 = &ldc_value;
     }
 
-    reidblas::ilp64::zher2k(uplo, trans, n_ilp64, k_ilp64, alpha, a, lda_ilp64, b, ldb_ilp64, beta, c, ldc_ilp64);
+    backend().zher2k(uplo, trans, n_ilp64, k_ilp64, alpha, a, lda_ilp64, b, ldb_ilp64, beta, c, ldc_ilp64);
 }
 
 extern "C" void ztrsm_(
@@ -4990,7 +4998,7 @@ extern "C" void ztrsm_(
         ldb_ilp64 = &ldb_value;
     }
 
-    reidblas::ilp64::ztrsm(side, uplo, transa, diag, m_ilp64, n_ilp64, alpha, a, lda_ilp64, b, ldb_ilp64);
+    backend().ztrsm(side, uplo, transa, diag, m_ilp64, n_ilp64, alpha, a, lda_ilp64, b, ldb_ilp64);
 }
 
 extern "C" void ztrmm_(
@@ -5031,5 +5039,5 @@ extern "C" void ztrmm_(
         ldb_ilp64 = &ldb_value;
     }
 
-    reidblas::ilp64::ztrmm(side, uplo, transa, diag, m_ilp64, n_ilp64, alpha, a, lda_ilp64, b, ldb_ilp64);
+    backend().ztrmm(side, uplo, transa, diag, m_ilp64, n_ilp64, alpha, a, lda_ilp64, b, ldb_ilp64);
 }

@@ -300,15 +300,31 @@ inline float absolute_value(float value) { return std::abs(value); }
 inline double absolute_value(double value) { return std::abs(value); }
 
 template <typename T>
+T complex_abs1(const std::complex<T> &value) {
+    return std::abs(value.real()) + std::abs(value.imag());
+}
+
+template <typename T>
 T reconstruct_compensated_value(const T &primary, const T *bins, std::size_t terms) {
     if (!bins || terms == 0) {
         return primary;
     }
-    long double sum = static_cast<long double>(primary);
-    for (std::size_t i = 0; i < terms; ++i) {
-        sum += static_cast<long double>(bins[i]);
+    if constexpr (scalar_traits_t<T>::is_complex) {
+        using real_t = typename scalar_traits_t<T>::real_type;
+        long double sum_real = static_cast<long double>(primary.real());
+        long double sum_imag = static_cast<long double>(primary.imag());
+        for (std::size_t i = 0; i < terms; ++i) {
+            sum_real += static_cast<long double>(bins[i].real());
+            sum_imag += static_cast<long double>(bins[i].imag());
+        }
+        return T(static_cast<real_t>(sum_real), static_cast<real_t>(sum_imag));
+    } else {
+        long double sum = static_cast<long double>(primary);
+        for (std::size_t i = 0; i < terms; ++i) {
+            sum += static_cast<long double>(bins[i]);
+        }
+        return static_cast<T>(sum);
     }
-    return static_cast<T>(sum);
 }
 
 template <typename T>
@@ -345,6 +361,60 @@ void rotg_impl(T *a, T *b, T *c, T *s) {
     }
     *a = r;
     *b = z;
+}
+
+template <typename T>
+void complex_rotg_impl(std::complex<T> *a,
+                       const std::complex<T> *b,
+                       T *c,
+                       std::complex<T> *s) {
+    if (!a || !b || !c || !s) {
+        return;
+    }
+
+    const std::complex<T> zero{};
+    const T zero_real = T(0);
+    const T one = T(1);
+
+    const T abs_a = std::abs(*a);
+    const T abs_b = std::abs(*b);
+
+    if (abs_a == zero_real && abs_b == zero_real) {
+        *c = one;
+        *s = zero;
+        *a = zero;
+        return;
+    }
+
+    if (abs_a == zero_real) {
+        *c = zero_real;
+        *s = (abs_b == zero_real) ? zero : (*b / abs_b);
+        *a = *b;
+        return;
+    }
+
+    const T scale = abs_a + abs_b;
+    if (scale == zero_real) {
+        *c = one;
+        *s = zero;
+        *a = zero;
+        return;
+    }
+
+    const T abs_a_over_scale = abs_a / scale;
+    const T abs_b_over_scale = abs_b / scale;
+    const T norm = scale * std::sqrt(abs_a_over_scale * abs_a_over_scale + abs_b_over_scale * abs_b_over_scale);
+    if (norm == zero_real) {
+        *c = one;
+        *s = zero;
+        *a = zero;
+        return;
+    }
+
+    const std::complex<T> alpha = *a / abs_a;
+    *c = abs_a / norm;
+    *s = alpha * std::conj(*b) / norm;
+    *a = alpha * norm;
 }
 
 template <typename T>
@@ -692,6 +762,12 @@ public:
     compensated_blas_complex_float cdotc(const std::int64_t *n, const compensated_blas_complex_float *x, const std::int64_t *incx, const compensated_blas_complex_float *y, const std::int64_t *incy) override;
     compensated_blas_complex_double zdotu(const std::int64_t *n, const compensated_blas_complex_double *x, const std::int64_t *incx, const compensated_blas_complex_double *y, const std::int64_t *incy) override;
     compensated_blas_complex_double zdotc(const std::int64_t *n, const compensated_blas_complex_double *x, const std::int64_t *incx, const compensated_blas_complex_double *y, const std::int64_t *incy) override;
+    void crotg(compensated_blas_complex_float *a, const compensated_blas_complex_float *b, float *c, compensated_blas_complex_float *s) override;
+    void csrot(const std::int64_t *n, compensated_blas_complex_float *x, const std::int64_t *incx, compensated_blas_complex_float *y, const std::int64_t *incy, const float *c, const float *s) override;
+    void csscal(const std::int64_t *n, const float *alpha, compensated_blas_complex_float *x, const std::int64_t *incx) override;
+    void cscal(const std::int64_t *n, const compensated_blas_complex_float *alpha, compensated_blas_complex_float *x, const std::int64_t *incx) override;
+    void cswap(const std::int64_t *n, compensated_blas_complex_float *x, const std::int64_t *incx, compensated_blas_complex_float *y, const std::int64_t *incy) override;
+    void ccopy(const std::int64_t *n, const compensated_blas_complex_float *x, const std::int64_t *incx, compensated_blas_complex_float *y, const std::int64_t *incy) override;
 
     void sswap(const std::int64_t *n, float *x, const std::int64_t *incx, float *y, const std::int64_t *incy) override;
     void dswap(const std::int64_t *n, double *x, const std::int64_t *incx, double *y, const std::int64_t *incy) override;
@@ -705,6 +781,18 @@ public:
     double dasum(const std::int64_t *n, const double *x, const std::int64_t *incx) override;
     std::int64_t isamax(const std::int64_t *n, const float *x, const std::int64_t *incx) override;
     std::int64_t idamax(const std::int64_t *n, const double *x, const std::int64_t *incx) override;
+    float scnrm2(const std::int64_t *n, const compensated_blas_complex_float *x, const std::int64_t *incx) override;
+    float scasum(const std::int64_t *n, const compensated_blas_complex_float *x, const std::int64_t *incx) override;
+    std::int64_t icamax(const std::int64_t *n, const compensated_blas_complex_float *x, const std::int64_t *incx) override;
+    void zrotg(compensated_blas_complex_double *a, const compensated_blas_complex_double *b, double *c, compensated_blas_complex_double *s) override;
+    void zdrot(const std::int64_t *n, compensated_blas_complex_double *x, const std::int64_t *incx, compensated_blas_complex_double *y, const std::int64_t *incy, const double *c, const double *s) override;
+    void zdscal(const std::int64_t *n, const double *alpha, compensated_blas_complex_double *x, const std::int64_t *incx) override;
+    void zscal(const std::int64_t *n, const compensated_blas_complex_double *alpha, compensated_blas_complex_double *x, const std::int64_t *incx) override;
+    void zswap(const std::int64_t *n, compensated_blas_complex_double *x, const std::int64_t *incx, compensated_blas_complex_double *y, const std::int64_t *incy) override;
+    void zcopy(const std::int64_t *n, const compensated_blas_complex_double *x, const std::int64_t *incx, compensated_blas_complex_double *y, const std::int64_t *incy) override;
+    double dznrm2(const std::int64_t *n, const compensated_blas_complex_double *x, const std::int64_t *incx) override;
+    double dzasum(const std::int64_t *n, const compensated_blas_complex_double *x, const std::int64_t *incx) override;
+    std::int64_t izamax(const std::int64_t *n, const compensated_blas_complex_double *x, const std::int64_t *incx) override;
     void srotm(const std::int64_t *n, float *x, const std::int64_t *incx, float *y, const std::int64_t *incy, const float *param) override;
     void drotm(const std::int64_t *n, double *x, const std::int64_t *incx, double *y, const std::int64_t *incy, const double *param) override;
     void srotmg(float *d1, float *d2, float *x1, const float *y1, float *param) override;
@@ -901,6 +989,57 @@ T nrm2_impl(std::int64_t count, const T *x, std::ptrdiff_t incx) {
 }
 
 template <typename T>
+T complex_nrm2_impl(std::int64_t count, const std::complex<T> *x, std::ptrdiff_t incx) {
+    if (count <= 0) {
+        return T{};
+    }
+    const std::complex<T> *x_ptr = adjust_pointer(x, count, incx);
+    std::ptrdiff_t step = incx;
+
+    long double scale = 0.0L;
+    long double sumsq = 1.0L;
+    bool nonzero = false;
+    bool found_infinity = false;
+    bool found_nan = false;
+
+    for (std::int64_t i = 0; i < count; ++i) {
+        const std::complex<T> value = *x_ptr;
+        const T magnitude = std::abs(value);
+        if (std::isnan(value.real()) || std::isnan(value.imag()) || std::isnan(magnitude)) {
+            found_nan = true;
+        }
+        if (std::isinf(magnitude)) {
+            found_infinity = true;
+        } else if (magnitude != T(0)) {
+            const long double abs_val = static_cast<long double>(magnitude);
+            if (!nonzero) {
+                scale = abs_val;
+                nonzero = true;
+            } else if (abs_val > scale) {
+                const long double ratio = scale / abs_val;
+                sumsq = sumsq * ratio * ratio + 1.0L;
+                scale = abs_val;
+            } else {
+                const long double ratio = abs_val / scale;
+                sumsq += ratio * ratio;
+            }
+        }
+        x_ptr += step;
+    }
+
+    if (found_nan) {
+        return std::numeric_limits<T>::quiet_NaN();
+    }
+    if (found_infinity) {
+        return std::numeric_limits<T>::infinity();
+    }
+    if (!nonzero) {
+        return T{};
+    }
+    return static_cast<T>(scale * std::sqrt(sumsq));
+}
+
+template <typename T>
 T asum_impl(std::int64_t count, const T *x, std::ptrdiff_t incx) {
     if (count <= 0) {
         return T{};
@@ -916,6 +1055,28 @@ T asum_impl(std::int64_t count, const T *x, std::ptrdiff_t incx) {
     const T *x_ptr = adjust_pointer(x, count, incx);
     for (std::int64_t i = 0; i < count; ++i) {
         const T value = absolute_value(*x_ptr);
+        accumulate_value(sum, bins_ptr, terms, value);
+        x_ptr += incx;
+    }
+    return finalize_value(sum, bins_ptr, terms);
+}
+
+template <typename T>
+T complex_asum_impl(std::int64_t count, const std::complex<T> *x, std::ptrdiff_t incx) {
+    if (count <= 0) {
+        return T{};
+    }
+    const std::size_t terms = compensated_blas::runtime::compensation_terms();
+    std::vector<T> &bins = thread_local_bins<T>(terms);
+    T *bins_ptr = bins.empty() ? nullptr : bins.data();
+    if (bins_ptr) {
+        zero_bins(bins_ptr, terms);
+    }
+
+    T sum{};
+    const std::complex<T> *x_ptr = adjust_pointer(x, count, incx);
+    for (std::int64_t i = 0; i < count; ++i) {
+        const T value = complex_abs1(*x_ptr);
         accumulate_value(sum, bins_ptr, terms, value);
         x_ptr += incx;
     }
@@ -945,6 +1106,29 @@ std::int64_t iamax_impl(std::int64_t count, const T *x, std::ptrdiff_t incx) {
     return index;
 }
 
+template <typename T>
+std::int64_t complex_iamax_impl(std::int64_t count, const std::complex<T> *x, std::ptrdiff_t incx) {
+    if (count <= 0 || incx == 0) {
+        return 0;
+    }
+
+    const std::complex<T> *x_ptr = adjust_pointer(x, count, incx);
+    std::ptrdiff_t step = incx;
+    std::int64_t index = 1;
+    T max_value = T(0);
+
+    for (std::int64_t i = 0; i < count; ++i) {
+        const T value = complex_abs1(*x_ptr);
+        if (value > max_value) {
+            max_value = value;
+            index = i + 1;
+        }
+        x_ptr += step;
+    }
+
+    return index;
+}
+
 void naive_blas_backend_t::sswap(const std::int64_t *n,
                              float *x,
                              const std::int64_t *incx,
@@ -961,6 +1145,30 @@ void naive_blas_backend_t::dswap(const std::int64_t *n,
     swap_impl<double>(*n, x, to_stride(incx), y, to_stride(incy));
 }
 
+void naive_blas_backend_t::cswap(const std::int64_t *n,
+                             compensated_blas_complex_float *x,
+                             const std::int64_t *incx,
+                             compensated_blas_complex_float *y,
+                             const std::int64_t *incy) {
+    swap_impl<std::complex<float>>(*n,
+                                   reinterpret_cast<std::complex<float> *>(x),
+                                   to_stride(incx),
+                                   reinterpret_cast<std::complex<float> *>(y),
+                                   to_stride(incy));
+}
+
+void naive_blas_backend_t::zswap(const std::int64_t *n,
+                             compensated_blas_complex_double *x,
+                             const std::int64_t *incx,
+                             compensated_blas_complex_double *y,
+                             const std::int64_t *incy) {
+    swap_impl<std::complex<double>>(*n,
+                                    reinterpret_cast<std::complex<double> *>(x),
+                                    to_stride(incx),
+                                    reinterpret_cast<std::complex<double> *>(y),
+                                    to_stride(incy));
+}
+
 void naive_blas_backend_t::srotg(float *a,
                              float *b,
                              float *c,
@@ -973,6 +1181,26 @@ void naive_blas_backend_t::drotg(double *a,
                              double *c,
                              double *s) {
     rotg_impl(a, b, c, s);
+}
+
+void naive_blas_backend_t::crotg(compensated_blas_complex_float *a,
+                             const compensated_blas_complex_float *b,
+                             float *c,
+                             compensated_blas_complex_float *s) {
+    complex_rotg_impl<float>(reinterpret_cast<std::complex<float> *>(a),
+                             reinterpret_cast<const std::complex<float> *>(b),
+                             c,
+                             reinterpret_cast<std::complex<float> *>(s));
+}
+
+void naive_blas_backend_t::zrotg(compensated_blas_complex_double *a,
+                             const compensated_blas_complex_double *b,
+                             double *c,
+                             compensated_blas_complex_double *s) {
+    complex_rotg_impl<double>(reinterpret_cast<std::complex<double> *>(a),
+                              reinterpret_cast<const std::complex<double> *>(b),
+                              c,
+                              reinterpret_cast<std::complex<double> *>(s));
 }
 
 void naive_blas_backend_t::srot(const std::int64_t *n,
@@ -999,6 +1227,48 @@ void naive_blas_backend_t::drot(const std::int64_t *n,
         return;
     }
     rot_impl<double>(*n, x, to_stride(incx), y, to_stride(incy), *c, *s);
+}
+
+void naive_blas_backend_t::csrot(const std::int64_t *n,
+                             compensated_blas_complex_float *x,
+                             const std::int64_t *incx,
+                             compensated_blas_complex_float *y,
+                             const std::int64_t *incy,
+                             const float *c,
+                             const float *s) {
+    if (!c || !s) {
+        return;
+    }
+    const std::complex<float> c_value(*c, 0.0f);
+    const std::complex<float> s_value(*s, 0.0f);
+    rot_impl<std::complex<float>>(*n,
+                                  reinterpret_cast<std::complex<float> *>(x),
+                                  to_stride(incx),
+                                  reinterpret_cast<std::complex<float> *>(y),
+                                  to_stride(incy),
+                                  c_value,
+                                  s_value);
+}
+
+void naive_blas_backend_t::zdrot(const std::int64_t *n,
+                             compensated_blas_complex_double *x,
+                             const std::int64_t *incx,
+                             compensated_blas_complex_double *y,
+                             const std::int64_t *incy,
+                             const double *c,
+                             const double *s) {
+    if (!c || !s) {
+        return;
+    }
+    const std::complex<double> c_value(*c, 0.0);
+    const std::complex<double> s_value(*s, 0.0);
+    rot_impl<std::complex<double>>(*n,
+                                   reinterpret_cast<std::complex<double> *>(x),
+                                   to_stride(incx),
+                                   reinterpret_cast<std::complex<double> *>(y),
+                                   to_stride(incy),
+                                   c_value,
+                                   s_value);
 }
 
 void naive_blas_backend_t::srotm(const std::int64_t *n,
@@ -1051,6 +1321,30 @@ void naive_blas_backend_t::dcopy(const std::int64_t *n,
     copy_impl<double>(*n, x, to_stride(incx), y, to_stride(incy));
 }
 
+void naive_blas_backend_t::ccopy(const std::int64_t *n,
+                             const compensated_blas_complex_float *x,
+                             const std::int64_t *incx,
+                             compensated_blas_complex_float *y,
+                             const std::int64_t *incy) {
+    copy_impl<std::complex<float>>(*n,
+                                    reinterpret_cast<const std::complex<float> *>(x),
+                                    to_stride(incx),
+                                    reinterpret_cast<std::complex<float> *>(y),
+                                    to_stride(incy));
+}
+
+void naive_blas_backend_t::zcopy(const std::int64_t *n,
+                             const compensated_blas_complex_double *x,
+                             const std::int64_t *incx,
+                             compensated_blas_complex_double *y,
+                             const std::int64_t *incy) {
+    copy_impl<std::complex<double>>(*n,
+                                     reinterpret_cast<const std::complex<double> *>(x),
+                                     to_stride(incx),
+                                     reinterpret_cast<std::complex<double> *>(y),
+                                     to_stride(incy));
+}
+
 void naive_blas_backend_t::sscal(const std::int64_t *n,
                              const float *alpha,
                              float *x,
@@ -1065,6 +1359,48 @@ void naive_blas_backend_t::dscal(const std::int64_t *n,
     scal_impl<double>(*n, *alpha, x, to_stride(incx));
 }
 
+void naive_blas_backend_t::csscal(const std::int64_t *n,
+                              const float *alpha,
+                              compensated_blas_complex_float *x,
+                              const std::int64_t *incx) {
+    const std::complex<float> scale(*alpha, 0.0f);
+    scal_impl<std::complex<float>>(*n,
+                                   scale,
+                                   reinterpret_cast<std::complex<float> *>(x),
+                                   to_stride(incx));
+}
+
+void naive_blas_backend_t::cscal(const std::int64_t *n,
+                             const compensated_blas_complex_float *alpha,
+                             compensated_blas_complex_float *x,
+                             const std::int64_t *incx) {
+    scal_impl<std::complex<float>>(*n,
+                                   to_complex(*alpha),
+                                   reinterpret_cast<std::complex<float> *>(x),
+                                   to_stride(incx));
+}
+
+void naive_blas_backend_t::zdscal(const std::int64_t *n,
+                              const double *alpha,
+                              compensated_blas_complex_double *x,
+                              const std::int64_t *incx) {
+    const std::complex<double> scale(*alpha, 0.0);
+    scal_impl<std::complex<double>>(*n,
+                                    scale,
+                                    reinterpret_cast<std::complex<double> *>(x),
+                                    to_stride(incx));
+}
+
+void naive_blas_backend_t::zscal(const std::int64_t *n,
+                             const compensated_blas_complex_double *alpha,
+                             compensated_blas_complex_double *x,
+                             const std::int64_t *incx) {
+    scal_impl<std::complex<double>>(*n,
+                                    to_complex(*alpha),
+                                    reinterpret_cast<std::complex<double> *>(x),
+                                    to_stride(incx));
+}
+
 float naive_blas_backend_t::snrm2(const std::int64_t *n,
                               const float *x,
                               const std::int64_t *incx) {
@@ -1075,6 +1411,22 @@ double naive_blas_backend_t::dnrm2(const std::int64_t *n,
                                const double *x,
                                const std::int64_t *incx) {
     return nrm2_impl<double>(*n, x, to_stride(incx));
+}
+
+float naive_blas_backend_t::scnrm2(const std::int64_t *n,
+                               const compensated_blas_complex_float *x,
+                               const std::int64_t *incx) {
+    return complex_nrm2_impl<float>(*n,
+                                    reinterpret_cast<const std::complex<float> *>(x),
+                                    to_stride(incx));
+}
+
+double naive_blas_backend_t::dznrm2(const std::int64_t *n,
+                                const compensated_blas_complex_double *x,
+                                const std::int64_t *incx) {
+    return complex_nrm2_impl<double>(*n,
+                                     reinterpret_cast<const std::complex<double> *>(x),
+                                     to_stride(incx));
 }
 
 float naive_blas_backend_t::sasum(const std::int64_t *n,
@@ -1089,6 +1441,22 @@ double naive_blas_backend_t::dasum(const std::int64_t *n,
     return asum_impl<double>(*n, x, to_stride(incx));
 }
 
+float naive_blas_backend_t::scasum(const std::int64_t *n,
+                               const compensated_blas_complex_float *x,
+                               const std::int64_t *incx) {
+    return complex_asum_impl<float>(*n,
+                                    reinterpret_cast<const std::complex<float> *>(x),
+                                    to_stride(incx));
+}
+
+double naive_blas_backend_t::dzasum(const std::int64_t *n,
+                                const compensated_blas_complex_double *x,
+                                const std::int64_t *incx) {
+    return complex_asum_impl<double>(*n,
+                                     reinterpret_cast<const std::complex<double> *>(x),
+                                     to_stride(incx));
+}
+
 std::int64_t naive_blas_backend_t::isamax(const std::int64_t *n,
                                       const float *x,
                                       const std::int64_t *incx) {
@@ -1099,6 +1467,22 @@ std::int64_t naive_blas_backend_t::idamax(const std::int64_t *n,
                                       const double *x,
                                       const std::int64_t *incx) {
     return iamax_impl<double>(*n, x, to_stride(incx));
+}
+
+std::int64_t naive_blas_backend_t::icamax(const std::int64_t *n,
+                                      const compensated_blas_complex_float *x,
+                                      const std::int64_t *incx) {
+    return complex_iamax_impl<float>(*n,
+                                     reinterpret_cast<const std::complex<float> *>(x),
+                                     to_stride(incx));
+}
+
+std::int64_t naive_blas_backend_t::izamax(const std::int64_t *n,
+                                      const compensated_blas_complex_double *x,
+                                      const std::int64_t *incx) {
+    return complex_iamax_impl<double>(*n,
+                                      reinterpret_cast<const std::complex<double> *>(x),
+                                      to_stride(incx));
 }
 
 // Helper to compute dot product with optional conjugation of X

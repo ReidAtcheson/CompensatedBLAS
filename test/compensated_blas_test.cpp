@@ -4,6 +4,8 @@
 #include <cstdint>
 #include <complex>
 #include <type_traits>
+#include <utility>
+#include <vector>
 
 #include <gtest/gtest.h>
 
@@ -471,6 +473,312 @@ TEST(compensated_naive_backend, level1_real_deferred) {
     double *x_bins = static_cast<double *>(x_descriptor->compensation);
     for (std::size_t i = 0; i < x_descriptor->compensation_elements * x_descriptor->compensation_terms; ++i) {
         EXPECT_DOUBLE_EQ(x_bins[i], 0.0);
+    }
+
+    compensated_blas::runtime::clear_deferred_rounding_registrations();
+    compensated_blas::runtime::set_backend(compensated_blas::runtime::backend_kind_t::empty);
+}
+
+TEST(compensated_naive_backend, level1_complex_immediate) {
+    compensated_blas::runtime::set_backend(compensated_blas::runtime::backend_kind_t::naive);
+    compensated_blas::runtime::set_compensation_terms(2);
+    compensated_blas::runtime::clear_deferred_rounding_registrations();
+
+    std::array<compensated_blas_complex_float, 3> x{{{1.0f, 2.0f}, {3.0f, -4.0f}, {5.0f, 0.5f}}};
+    std::array<compensated_blas_complex_float, 3> y{{{7.0f, -1.0f}, {2.0f, 6.0f}, {-3.0f, 4.0f}}};
+    std::array<std::complex<float>, 3> expected_x{std::complex<float>(1.0f, 2.0f),
+                                                  std::complex<float>(3.0f, -4.0f),
+                                                  std::complex<float>(5.0f, 0.5f)};
+    std::array<std::complex<float>, 3> expected_y{std::complex<float>(7.0f, -1.0f),
+                                                  std::complex<float>(2.0f, 6.0f),
+                                                  std::complex<float>(-3.0f, 4.0f)};
+
+    auto expect_match = [](const std::array<compensated_blas_complex_float, 3> &actual,
+                           const std::array<std::complex<float>, 3> &expected,
+                           float tol) {
+        for (std::size_t i = 0; i < actual.size(); ++i) {
+            EXPECT_NEAR(actual[i].real, expected[i].real(), tol);
+            EXPECT_NEAR(actual[i].imag, expected[i].imag(), tol);
+        }
+    };
+
+    std::int64_t n = 3;
+    std::int64_t inc = 1;
+    auto &backend = compensated_blas::impl::get_active_ilp64_backend();
+
+    backend.cswap(&n, x.data(), &inc, y.data(), &inc);
+    for (std::size_t i = 0; i < expected_x.size(); ++i) {
+        std::swap(expected_x[i], expected_y[i]);
+    }
+    expect_match(x, expected_x, 1e-6f);
+    expect_match(y, expected_y, 1e-6f);
+
+    float csscal_alpha = 2.0f;
+    backend.csscal(&n, &csscal_alpha, x.data(), &inc);
+    for (auto &value : expected_x) {
+        value *= csscal_alpha;
+    }
+    expect_match(x, expected_x, 1e-6f);
+
+    compensated_blas_complex_float cscal_alpha{0.0f, -1.0f};
+    backend.cscal(&n, &cscal_alpha, y.data(), &inc);
+    const std::complex<float> cscal_alpha_complex(0.0f, -1.0f);
+    for (auto &value : expected_y) {
+        value *= cscal_alpha_complex;
+    }
+    expect_match(y, expected_y, 1e-6f);
+
+    backend.ccopy(&n, y.data(), &inc, x.data(), &inc);
+    expected_x = expected_y;
+    expect_match(x, expected_x, 1e-6f);
+
+    compensated_blas_complex_float axpy_alpha{1.0f, 1.0f};
+    backend.caxpy(&n, &axpy_alpha, y.data(), &inc, x.data(), &inc);
+    const std::complex<float> axpy_alpha_complex(1.0f, 1.0f);
+    for (std::size_t i = 0; i < expected_x.size(); ++i) {
+        expected_x[i] += axpy_alpha_complex * expected_y[i];
+    }
+    expect_match(x, expected_x, 1e-5f);
+
+    float norm = backend.scnrm2(&n, x.data(), &inc);
+    double expected_norm = 0.0;
+    for (const auto &value : expected_x) {
+        expected_norm += static_cast<double>(std::norm(value));
+    }
+    expected_norm = std::sqrt(expected_norm);
+    EXPECT_NEAR(norm, static_cast<float>(expected_norm), 1e-5f);
+
+    float asum = backend.scasum(&n, x.data(), &inc);
+    double expected_asum = 0.0;
+    for (const auto &value : expected_x) {
+        expected_asum += std::abs(value.real()) + std::abs(value.imag());
+    }
+    EXPECT_NEAR(asum, static_cast<float>(expected_asum), 1e-5f);
+
+    std::int64_t icamax_index = backend.icamax(&n, x.data(), &inc);
+    std::int64_t expected_icamax = 1;
+    float max_abs1 = -1.0f;
+    for (std::size_t i = 0; i < expected_x.size(); ++i) {
+        const float abs1 = std::abs(expected_x[i].real()) + std::abs(expected_x[i].imag());
+        if (abs1 > max_abs1) {
+            max_abs1 = abs1;
+            expected_icamax = static_cast<std::int64_t>(i + 1);
+        }
+    }
+    EXPECT_EQ(icamax_index, expected_icamax);
+
+    float rot_c = 0.6f;
+    float rot_s = -0.8f;
+    backend.csrot(&n, x.data(), &inc, y.data(), &inc, &rot_c, &rot_s);
+    for (std::size_t i = 0; i < expected_x.size(); ++i) {
+        const std::complex<float> old_x = expected_x[i];
+        const std::complex<float> old_y = expected_y[i];
+        expected_x[i] = rot_c * old_x + rot_s * old_y;
+        expected_y[i] = rot_c * old_y - rot_s * old_x;
+    }
+    expect_match(x, expected_x, 1e-5f);
+    expect_match(y, expected_y, 1e-5f);
+
+    compensated_blas_complex_float crotg_a{3.0f, 4.0f};
+    compensated_blas_complex_float crotg_b{1.0f, -2.0f};
+    float crotg_c = 0.0f;
+    compensated_blas_complex_float crotg_s{};
+    backend.crotg(&crotg_a, &crotg_b, &crotg_c, &crotg_s);
+
+    std::complex<float> a_complex(3.0f, 4.0f);
+    std::complex<float> b_complex(1.0f, -2.0f);
+    float expected_crotg_c;
+    std::complex<float> expected_crotg_s;
+    std::complex<float> expected_crotg_r;
+    const float abs_a = std::abs(a_complex);
+    const float abs_b = std::abs(b_complex);
+    if (abs_a == 0.0f && abs_b == 0.0f) {
+        expected_crotg_c = 1.0f;
+        expected_crotg_s = std::complex<float>(0.0f, 0.0f);
+        expected_crotg_r = std::complex<float>(0.0f, 0.0f);
+    } else if (abs_a == 0.0f) {
+        expected_crotg_c = 0.0f;
+        expected_crotg_s = std::complex<float>(1.0f, 0.0f);
+        expected_crotg_r = b_complex;
+    } else {
+        const float scale = abs_a + abs_b;
+        const float norm = scale * std::sqrt((abs_a / scale) * (abs_a / scale) + (abs_b / scale) * (abs_b / scale));
+        const std::complex<float> alpha = a_complex / abs_a;
+        expected_crotg_c = abs_a / norm;
+        expected_crotg_s = alpha * std::conj(b_complex) / norm;
+        expected_crotg_r = alpha * norm;
+    }
+    EXPECT_NEAR(crotg_c, expected_crotg_c, 1e-5f);
+    EXPECT_NEAR(crotg_s.real, expected_crotg_s.real(), 1e-5f);
+    EXPECT_NEAR(crotg_s.imag, expected_crotg_s.imag(), 1e-5f);
+    EXPECT_NEAR(crotg_a.real, expected_crotg_r.real(), 1e-5f);
+    EXPECT_NEAR(crotg_a.imag, expected_crotg_r.imag(), 1e-5f);
+
+    compensated_blas::runtime::set_backend(compensated_blas::runtime::backend_kind_t::empty);
+}
+
+TEST(compensated_naive_backend, level1_complex_deferred) {
+    compensated_blas::runtime::set_backend(compensated_blas::runtime::backend_kind_t::naive);
+    compensated_blas::runtime::set_compensation_terms(2);
+    compensated_blas::runtime::clear_deferred_rounding_registrations();
+
+    std::array<compensated_blas_complex_double, 3> x{{{1.0, -2.0}, {1e16, -1e16}, {-1e16, 2e16}}};
+    std::array<compensated_blas_complex_double, 3> y{{{3.0, 4.0}, {-5.0, 6.0}, {7.5, -8.5}}};
+    std::array<std::complex<double>, 3> expected_x{std::complex<double>(1.0, -2.0),
+                                                   std::complex<double>(1e16, -1e16),
+                                                   std::complex<double>(-1e16, 2e16)};
+    std::array<std::complex<double>, 3> expected_y{std::complex<double>(3.0, 4.0),
+                                                   std::complex<double>(-5.0, 6.0),
+                                                   std::complex<double>(7.5, -8.5)};
+
+    compensated_blas::runtime::deferred_rounding_vector_t desc{};
+    desc.data = x.data();
+    desc.length = x.size();
+    desc.stride = 1;
+    desc.element_size = sizeof(compensated_blas_complex_double);
+    desc.alignment = alignof(compensated_blas_complex_double);
+    desc.type = compensated_blas::runtime::scalar_type_t::complex128;
+    compensated_blas::runtime::register_deferred_rounding_vector(desc);
+
+    desc.data = y.data();
+    compensated_blas::runtime::register_deferred_rounding_vector(desc);
+
+    auto reconstruct_value = [](const compensated_blas_complex_double &primary,
+                                const compensated_blas_complex_double *bins,
+                                std::size_t terms) {
+        long double sum_real = primary.real;
+        long double sum_imag = primary.imag;
+        if (bins && terms > 0) {
+            for (std::size_t i = 0; i < terms; ++i) {
+                sum_real += bins[i].real;
+                sum_imag += bins[i].imag;
+            }
+        }
+        return std::complex<double>(static_cast<double>(sum_real), static_cast<double>(sum_imag));
+    };
+
+    auto gather = [&](compensated_blas_complex_double *data,
+                      std::size_t length) {
+        std::vector<std::complex<double>> result(length);
+        auto descriptor = compensated_blas::runtime::find_deferred_rounding_vector(data);
+        if (descriptor.has_value() && descriptor->compensation != nullptr && descriptor->compensation_terms > 0) {
+            auto *bins = static_cast<compensated_blas_complex_double *>(descriptor->compensation);
+            for (std::size_t i = 0; i < length; ++i) {
+                const std::size_t offset = i * descriptor->stride;
+                const bool within = offset < descriptor->compensation_elements;
+                const compensated_blas_complex_double *element_bins = within ? bins + offset * descriptor->compensation_terms : nullptr;
+                result[i] = reconstruct_value(data[offset], element_bins, descriptor->compensation_terms);
+            }
+        } else {
+            for (std::size_t i = 0; i < length; ++i) {
+                result[i] = std::complex<double>(data[i].real, data[i].imag);
+            }
+        }
+        return result;
+    };
+
+    auto &backend = compensated_blas::impl::get_active_ilp64_backend();
+    std::int64_t n = static_cast<std::int64_t>(x.size());
+    std::int64_t inc = 1;
+
+    backend.zswap(&n, x.data(), &inc, y.data(), &inc);
+    for (std::size_t i = 0; i < expected_x.size(); ++i) {
+        std::swap(expected_x[i], expected_y[i]);
+    }
+    auto actual_x = gather(x.data(), x.size());
+    auto actual_y = gather(y.data(), y.size());
+    for (std::size_t i = 0; i < expected_x.size(); ++i) {
+        EXPECT_NEAR(actual_x[i].real(), expected_x[i].real(), 1e-6);
+        EXPECT_NEAR(actual_x[i].imag(), expected_x[i].imag(), 1e-6);
+        EXPECT_NEAR(actual_y[i].real(), expected_y[i].real(), 1e-6);
+        EXPECT_NEAR(actual_y[i].imag(), expected_y[i].imag(), 1e-6);
+    }
+
+    double real_scale = 0.5;
+    backend.zdscal(&n, &real_scale, x.data(), &inc);
+    for (auto &value : expected_x) {
+        value *= real_scale;
+    }
+
+    compensated_blas_complex_double complex_scale{0.25, -0.5};
+    backend.zscal(&n, &complex_scale, y.data(), &inc);
+    const std::complex<double> complex_scale_std(0.25, -0.5);
+    for (auto &value : expected_y) {
+        value *= complex_scale_std;
+    }
+
+    backend.zcopy(&n, y.data(), &inc, x.data(), &inc);
+    expected_x = expected_y;
+
+    compensated_blas_complex_double zaxpy_alpha{-1.0, 0.5};
+    backend.zaxpy(&n, &zaxpy_alpha, y.data(), &inc, x.data(), &inc);
+    const std::complex<double> zaxpy_alpha_std(-1.0, 0.5);
+    for (std::size_t i = 0; i < expected_x.size(); ++i) {
+        expected_x[i] += zaxpy_alpha_std * expected_y[i];
+    }
+
+    double zdrot_c = 0.8;
+    double zdrot_s = 0.6;
+    backend.zdrot(&n, x.data(), &inc, y.data(), &inc, &zdrot_c, &zdrot_s);
+    for (std::size_t i = 0; i < expected_x.size(); ++i) {
+        const std::complex<double> old_x = expected_x[i];
+        const std::complex<double> old_y = expected_y[i];
+        expected_x[i] = zdrot_c * old_x + zdrot_s * old_y;
+        expected_y[i] = zdrot_c * old_y - zdrot_s * old_x;
+    }
+
+    actual_x = gather(x.data(), x.size());
+    actual_y = gather(y.data(), y.size());
+    for (std::size_t i = 0; i < expected_x.size(); ++i) {
+        EXPECT_NEAR(actual_x[i].real(), expected_x[i].real(), 1e-5);
+        EXPECT_NEAR(actual_x[i].imag(), expected_x[i].imag(), 1e-5);
+        EXPECT_NEAR(actual_y[i].real(), expected_y[i].real(), 1e-5);
+        EXPECT_NEAR(actual_y[i].imag(), expected_y[i].imag(), 1e-5);
+    }
+
+    compensated_blas_complex_double zrotg_a{-2.0, 1.5};
+    compensated_blas_complex_double zrotg_b{4.0, -3.0};
+    double zrotg_c = 0.0;
+    compensated_blas_complex_double zrotg_s{};
+    backend.zrotg(&zrotg_a, &zrotg_b, &zrotg_c, &zrotg_s);
+
+    std::complex<double> za(-2.0, 1.5);
+    std::complex<double> zb(4.0, -3.0);
+    double expected_zc;
+    std::complex<double> expected_zs;
+    std::complex<double> expected_zr;
+    const double abs_za = std::abs(za);
+    const double abs_zb = std::abs(zb);
+    if (abs_za == 0.0 && abs_zb == 0.0) {
+        expected_zc = 1.0;
+        expected_zs = std::complex<double>(0.0, 0.0);
+        expected_zr = std::complex<double>(0.0, 0.0);
+    } else if (abs_za == 0.0) {
+        expected_zc = 0.0;
+        expected_zs = std::complex<double>(1.0, 0.0);
+        expected_zr = zb;
+    } else {
+        const double scale = abs_za + abs_zb;
+        const double norm = scale * std::sqrt((abs_za / scale) * (abs_za / scale) + (abs_zb / scale) * (abs_zb / scale));
+        const std::complex<double> alpha = za / abs_za;
+        expected_zc = abs_za / norm;
+        expected_zs = alpha * std::conj(zb) / norm;
+        expected_zr = alpha * norm;
+    }
+    EXPECT_NEAR(zrotg_c, expected_zc, 1e-12);
+    EXPECT_NEAR(zrotg_s.real, expected_zs.real(), 1e-12);
+    EXPECT_NEAR(zrotg_s.imag, expected_zs.imag(), 1e-12);
+    EXPECT_NEAR(zrotg_a.real, expected_zr.real(), 1e-12);
+    EXPECT_NEAR(zrotg_a.imag, expected_zr.imag(), 1e-12);
+
+    auto x_descriptor = compensated_blas::runtime::find_deferred_rounding_vector(x.data());
+    ASSERT_TRUE(x_descriptor.has_value());
+    if (x_descriptor->compensation != nullptr) {
+        auto *bins = static_cast<compensated_blas_complex_double *>(x_descriptor->compensation);
+        for (std::size_t i = 0; i < x_descriptor->compensation_elements * x_descriptor->compensation_terms; ++i) {
+            EXPECT_TRUE(std::abs(bins[i].real) < 1e-9);
+            EXPECT_TRUE(std::abs(bins[i].imag) < 1e-9);
+        }
     }
 
     compensated_blas::runtime::clear_deferred_rounding_registrations();

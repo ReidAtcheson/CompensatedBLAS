@@ -3,7 +3,6 @@
 #include <cstddef>
 #include <cstdint>
 #include <complex>
-#include <cblas.h>
 #include <type_traits>
 
 #include <gtest/gtest.h>
@@ -513,6 +512,242 @@ TEST(compensated_naive_backend, level1_reductions) {
     compensated_blas::runtime::set_backend(compensated_blas::runtime::backend_kind_t::empty);
 }
 
+namespace {
+
+template <typename T>
+struct reference_rotmg_constants;
+
+template <>
+struct reference_rotmg_constants<float> {
+    static constexpr float gam = 4096.0f;
+    static constexpr float gamsq = gam * gam;
+    static constexpr float rgamsq = 5.96046e-8f;
+};
+
+template <>
+struct reference_rotmg_constants<double> {
+    static constexpr double gam = 4096.0;
+    static constexpr double gamsq = gam * gam;
+    static constexpr double rgamsq = 5.9604645e-8;
+};
+
+template <typename T>
+void reference_rotmg(T *d1, T *d2, T *x1, const T *y1, T *param) {
+    if (!d1 || !d2 || !x1 || !y1 || !param) {
+        return;
+    }
+
+    const T zero = T(0);
+    const T one = T(1);
+    const T neg_one = T(-1);
+    const T neg_two = T(-2);
+    const T gam = reference_rotmg_constants<T>::gam;
+    const T gamsq = reference_rotmg_constants<T>::gamsq;
+    const T rgamsq = reference_rotmg_constants<T>::rgamsq;
+
+    T flag = neg_two;
+    T h11 = zero;
+    T h12 = zero;
+    T h21 = zero;
+    T h22 = zero;
+
+    if (*d1 < zero) {
+        flag = neg_one;
+        *d1 = zero;
+        *d2 = zero;
+        *x1 = zero;
+    } else {
+        const T p2 = (*d2) * (*y1);
+        if (p2 == zero) {
+            param[0] = neg_two;
+            return;
+        }
+
+        const T p1 = (*d1) * (*x1);
+        const T q2 = p2 * (*y1);
+        const T q1 = p1 * (*x1);
+
+        if (std::abs(q1) > std::abs(q2)) {
+            h21 = -(*y1) / (*x1);
+            h12 = p2 / p1;
+            const T u = one - h12 * h21;
+            if (u > zero) {
+                flag = zero;
+                *d1 /= u;
+                *d2 /= u;
+                *x1 *= u;
+            } else {
+                flag = neg_one;
+                *d1 = zero;
+                *d2 = zero;
+                *x1 = zero;
+            }
+        } else {
+            if (q2 < zero) {
+                flag = neg_one;
+                *d1 = zero;
+                *d2 = zero;
+                *x1 = zero;
+            } else {
+                flag = one;
+                h11 = p1 / p2;
+                h22 = (*x1) / (*y1);
+                const T u = one + h11 * h22;
+                const T temp = (*d2) / u;
+                *d2 = (*d1) / u;
+                *d1 = temp;
+                *x1 = (*y1) * u;
+            }
+        }
+
+        if (flag != neg_one) {
+            if (*d1 != zero) {
+                while ((*d1 <= rgamsq) || (*d1 >= gamsq)) {
+                    if (flag == zero) {
+                        h11 = one;
+                        h22 = one;
+                        flag = neg_one;
+                    } else {
+                        h21 = neg_one;
+                        h12 = one;
+                        flag = neg_one;
+                    }
+
+                    if (*d1 <= rgamsq) {
+                        *d1 *= gamsq;
+                        *x1 /= gam;
+                        h11 /= gam;
+                        h12 /= gam;
+                    } else {
+                        *d1 /= gamsq;
+                        *x1 *= gam;
+                        h11 *= gam;
+                        h12 *= gam;
+                    }
+                }
+            }
+
+            if (*d2 != zero) {
+                while ((std::abs(*d2) <= rgamsq) || (std::abs(*d2) >= gamsq)) {
+                    if (flag == zero) {
+                        h11 = one;
+                        h22 = one;
+                        flag = neg_one;
+                    } else {
+                        h21 = neg_one;
+                        h12 = one;
+                        flag = neg_one;
+                    }
+
+                    if (std::abs(*d2) <= rgamsq) {
+                        *d2 *= gamsq;
+                        h21 /= gam;
+                        h22 /= gam;
+                    } else {
+                        *d2 /= gamsq;
+                        h21 *= gam;
+                        h22 *= gam;
+                    }
+                }
+            }
+        }
+    }
+
+    param[0] = flag;
+    if (flag < zero) {
+        param[1] = h11;
+        param[2] = h21;
+        param[3] = h12;
+        param[4] = h22;
+    } else if (flag == zero) {
+        param[2] = h21;
+        param[3] = h12;
+    } else if (flag == one) {
+        param[1] = h11;
+        param[4] = h22;
+    }
+}
+
+template <typename T>
+void reference_rotm(std::int64_t n,
+                    T *x,
+                    std::int64_t incx,
+                    T *y,
+                    std::int64_t incy,
+                    const T *param) {
+    if (n <= 0 || incx == 0 || incy == 0 || !x || !y || !param) {
+        return;
+    }
+
+    const T flag = param[0];
+    if (flag == static_cast<T>(-2)) {
+        return;
+    }
+
+    T h11 = T(0);
+    T h12 = T(0);
+    T h21 = T(0);
+    T h22 = T(0);
+
+    if (flag == static_cast<T>(-1)) {
+        h11 = param[1];
+        h21 = param[2];
+        h12 = param[3];
+        h22 = param[4];
+    } else if (flag == static_cast<T>(0)) {
+        h11 = T(1);
+        h22 = T(1);
+        h21 = param[2];
+        h12 = param[3];
+    } else if (flag == static_cast<T>(1)) {
+        h11 = param[1];
+        h12 = T(1);
+        h21 = static_cast<T>(-1);
+        h22 = param[4];
+    } else {
+        return;
+    }
+
+    T *x_ptr = x;
+    T *y_ptr = y;
+    const std::ptrdiff_t sx = static_cast<std::ptrdiff_t>(incx);
+    const std::ptrdiff_t sy = static_cast<std::ptrdiff_t>(incy);
+
+    if (sx < 0) {
+        x_ptr += static_cast<std::ptrdiff_t>(n - 1) * (-sx);
+    }
+    if (sy < 0) {
+        y_ptr += static_cast<std::ptrdiff_t>(n - 1) * (-sy);
+    }
+
+    for (std::int64_t i = 0; i < n; ++i) {
+        const T x_val = *x_ptr;
+        const T y_val = *y_ptr;
+
+        T new_x;
+        T new_y;
+
+        if (flag == static_cast<T>(-1)) {
+            new_x = h11 * x_val + h12 * y_val;
+            new_y = h21 * x_val + h22 * y_val;
+        } else if (flag == static_cast<T>(0)) {
+            new_x = x_val + h12 * y_val;
+            new_y = h21 * x_val + y_val;
+        } else {
+            new_x = h11 * x_val + y_val;
+            new_y = -x_val + h22 * y_val;
+        }
+
+        *x_ptr = new_x;
+        *y_ptr = new_y;
+
+        x_ptr += sx;
+        y_ptr += sy;
+    }
+}
+
+}  // namespace
+
 TEST(compensated_naive_backend, level1_real_rotations) {
     compensated_blas::runtime::set_backend(compensated_blas::runtime::backend_kind_t::naive);
     compensated_blas::runtime::set_compensation_terms(2);
@@ -581,7 +816,7 @@ TEST(compensated_naive_backend, level1_rotmg_and_rotm) {
     double ref_d1 = 2.0;
     double ref_d2 = 3.0;
     double ref_x1 = 1.5;
-    cblas_drotmg(&ref_d1, &ref_d2, &ref_x1, y1, ref_param);
+    reference_rotmg(&ref_d1, &ref_d2, &ref_x1, &y1, ref_param);
 
     for (int i = 0; i < 5; ++i) {
         EXPECT_NEAR(param[i], ref_param[i], 1e-12);
@@ -599,7 +834,7 @@ TEST(compensated_naive_backend, level1_rotmg_and_rotm) {
 
     std::array<double, 3> ref_x = {1.0, -2.0, 3.0};
     std::array<double, 3> ref_y = {4.0, 5.0, -6.0};
-    cblas_drotm(n, ref_x.data(), inc, ref_y.data(), inc, ref_param);
+    reference_rotm(n, ref_x.data(), inc, ref_y.data(), inc, ref_param);
 
     for (std::size_t i = 0; i < xv.size(); ++i) {
         EXPECT_NEAR(xv[i], ref_x[i], 1e-12);

@@ -9,14 +9,34 @@
 #include <utility>
 #include <vector>
 #include <cstdlib>
+#include <limits>
 
 #include "compensated_blas.hpp"
 #include "impl/backend_stub.hpp"
 #include "impl/compensated_arithmetic.hpp"
 
-#include <cblas.h>
-
 namespace compensated_blas::impl::detail {
+
+namespace {
+
+template <typename T>
+struct rotmg_constants;
+
+template <>
+struct rotmg_constants<float> {
+    static constexpr float gam = 4096.0f;
+    static constexpr float gamsq = gam * gam;
+    static constexpr float rgamsq = 5.96046e-8f;
+};
+
+template <>
+struct rotmg_constants<double> {
+    static constexpr double gam = 4096.0;
+    static constexpr double gamsq = gam * gam;
+    static constexpr double rgamsq = 5.9604645e-8;
+};
+
+}  // namespace
 
 template <typename T>
 struct scalar_traits_t {
@@ -522,10 +542,139 @@ void rotmg_impl(T *d1, T *d2, T *x1, const T *y1, T *param) {
         return;
     }
 
-    if constexpr (std::is_same_v<T, float>) {
-        cblas_srotmg(d1, d2, x1, *y1, param);
+    const T zero = T(0);
+    const T one = T(1);
+    const T neg_one = T(-1);
+    const T neg_two = T(-2);
+
+    const T gam = rotmg_constants<T>::gam;
+    const T gamsq = rotmg_constants<T>::gamsq;
+    const T rgamsq = rotmg_constants<T>::rgamsq;
+
+    T flag = neg_two;
+    T h11 = zero;
+    T h12 = zero;
+    T h21 = zero;
+    T h22 = zero;
+
+    if (*d1 < zero) {
+        flag = neg_one;
+        *d1 = zero;
+        *d2 = zero;
+        *x1 = zero;
     } else {
-        cblas_drotmg(d1, d2, x1, *y1, param);
+        const T p2 = (*d2) * (*y1);
+        if (p2 == zero) {
+            param[0] = neg_two;
+            return;
+        }
+
+        const T p1 = (*d1) * (*x1);
+        const T q2 = p2 * (*y1);
+        const T q1 = p1 * (*x1);
+
+        if (std::abs(q1) > std::abs(q2)) {
+            h21 = -(*y1) / (*x1);
+            h12 = p2 / p1;
+            const T u = one - h12 * h21;
+
+            if (u > zero) {
+                flag = zero;
+                *d1 /= u;
+                *d2 /= u;
+                *x1 *= u;
+            } else {
+                flag = neg_one;
+                *d1 = zero;
+                *d2 = zero;
+                *x1 = zero;
+                h11 = h12 = h21 = h22 = zero;
+            }
+        } else {
+            if (q2 < zero) {
+                flag = neg_one;
+                *d1 = zero;
+                *d2 = zero;
+                *x1 = zero;
+                h11 = h12 = h21 = h22 = zero;
+            } else {
+                flag = one;
+                h11 = p1 / p2;
+                h22 = (*x1) / (*y1);
+                const T u = one + h11 * h22;
+                const T temp = (*d2) / u;
+                *d2 = (*d1) / u;
+                *d1 = temp;
+                *x1 = (*y1) * u;
+            }
+        }
+
+        if (flag != neg_one) {
+            if (*d1 != zero) {
+                while ((*d1 <= rgamsq) || (*d1 >= gamsq)) {
+                    if (flag == zero) {
+                        h11 = one;
+                        h22 = one;
+                        flag = neg_one;
+                    } else {
+                        h21 = neg_one;
+                        h12 = one;
+                        flag = neg_one;
+                    }
+
+                    if (*d1 <= rgamsq) {
+                        *d1 *= gamsq;
+                        *x1 /= gam;
+                        h11 /= gam;
+                        h12 /= gam;
+                    } else {
+                        *d1 /= gamsq;
+                        *x1 *= gam;
+                        h11 *= gam;
+                        h12 *= gam;
+                    }
+                }
+            }
+
+            if (*d2 != zero) {
+                while ((std::abs(*d2) <= rgamsq) || (std::abs(*d2) >= gamsq)) {
+                    if (flag == zero) {
+                        h11 = one;
+                        h22 = one;
+                        flag = neg_one;
+                    } else {
+                        h21 = neg_one;
+                        h12 = one;
+                        flag = neg_one;
+                    }
+
+                    if (std::abs(*d2) <= rgamsq) {
+                        *d2 *= gamsq;
+                        h21 /= gam;
+                        h22 /= gam;
+                    } else {
+                        *d2 /= gamsq;
+                        h21 *= gam;
+                        h22 *= gam;
+                    }
+                }
+            }
+        }
+    }
+
+    param[0] = flag;
+
+    if (flag < zero) {
+        param[1] = h11;
+        param[2] = h21;
+        param[3] = h12;
+        param[4] = h22;
+    } else if (flag == zero) {
+        param[2] = h21;
+        param[3] = h12;
+    } else if (flag == one) {
+        param[1] = h11;
+        param[4] = h22;
     }
 }
 
@@ -706,19 +855,24 @@ T nrm2_impl(std::int64_t count, const T *x, std::ptrdiff_t incx) {
     if (count <= 0) {
         return T{};
     }
-    if (incx == 0) {
-        return T{};
-    }
     const T *x_ptr = adjust_pointer(x, count, incx);
     std::ptrdiff_t step = incx;
 
     long double scale = 0.0L;
     long double sumsq = 1.0L;
     bool nonzero = false;
+    bool found_infinity = false;
+    bool found_nan = false;
 
     for (std::int64_t i = 0; i < count; ++i) {
-        const long double abs_val = std::abs(static_cast<long double>(*x_ptr));
-        if (abs_val != 0.0L) {
+        const long double value = static_cast<long double>(*x_ptr);
+        if (std::isnan(value)) {
+            found_nan = true;
+        }
+        const long double abs_val = std::abs(value);
+        if (std::isinf(abs_val)) {
+            found_infinity = true;
+        } else if (abs_val != 0.0L) {
             if (!nonzero) {
                 scale = abs_val;
                 nonzero = true;
@@ -734,6 +888,12 @@ T nrm2_impl(std::int64_t count, const T *x, std::ptrdiff_t incx) {
         x_ptr += step;
     }
 
+    if (found_nan) {
+        return std::numeric_limits<T>::quiet_NaN();
+    }
+    if (found_infinity) {
+        return std::numeric_limits<T>::infinity();
+    }
     if (!nonzero) {
         return T{};
     }

@@ -379,6 +379,471 @@ TEST(compensated_naive_backend, syrk_immediate_and_deferred) {
     compensated_blas::runtime::set_backend(compensated_blas::runtime::backend_kind_t::empty);
 }
 
+TEST(compensated_naive_backend, level1_real_immediate) {
+    compensated_blas::runtime::set_backend(compensated_blas::runtime::backend_kind_t::naive);
+    compensated_blas::runtime::set_compensation_terms(2);
+    compensated_blas::runtime::clear_deferred_rounding_registrations();
+
+    std::int64_t n = 3;
+    std::int64_t inc = 1;
+
+    std::array<float, 3> xf{1.0f, -2.0f, 3.0f};
+    std::array<float, 3> yf{4.0f, 5.0f, -6.0f};
+
+    auto &backend = compensated_blas::impl::get_active_ilp64_backend();
+    backend.sswap(&n, xf.data(), &inc, yf.data(), &inc);
+    EXPECT_FLOAT_EQ(xf[0], 4.0f);
+    EXPECT_FLOAT_EQ(xf[1], 5.0f);
+    EXPECT_FLOAT_EQ(xf[2], -6.0f);
+    EXPECT_FLOAT_EQ(yf[0], 1.0f);
+    EXPECT_FLOAT_EQ(yf[1], -2.0f);
+    EXPECT_FLOAT_EQ(yf[2], 3.0f);
+
+    float alpha = 0.5f;
+    backend.sscal(&n, &alpha, xf.data(), &inc);
+    EXPECT_FLOAT_EQ(xf[0], 2.0f);
+    EXPECT_FLOAT_EQ(xf[1], 2.5f);
+    EXPECT_FLOAT_EQ(xf[2], -3.0f);
+
+    backend.scopy(&n, yf.data(), &inc, xf.data(), &inc);
+    EXPECT_FLOAT_EQ(xf[0], 1.0f);
+    EXPECT_FLOAT_EQ(xf[1], -2.0f);
+    EXPECT_FLOAT_EQ(xf[2], 3.0f);
+
+    std::array<double, 4> xd{1.0, -4.0, 3.0, -2.0};
+    std::array<double, 4> yd{2.0, 5.0, -1.0, 4.0};
+    n = 2;
+    std::int64_t inc2 = 2;  // test non-unit stride
+    backend.dswap(&n, xd.data(), &inc2, yd.data(), &inc2);
+    EXPECT_DOUBLE_EQ(xd[0], 2.0);
+    EXPECT_DOUBLE_EQ(xd[2], -1.0);
+    EXPECT_DOUBLE_EQ(yd[0], 1.0);
+    EXPECT_DOUBLE_EQ(yd[2], 3.0);
+
+    double beta = -2.0;
+    backend.dscal(&n, &beta, xd.data(), &inc2);
+    EXPECT_DOUBLE_EQ(xd[0], -4.0);
+    EXPECT_DOUBLE_EQ(xd[2], 2.0);
+
+    backend.dcopy(&n, yd.data(), &inc2, xd.data(), &inc2);
+    EXPECT_DOUBLE_EQ(xd[0], 1.0);
+    EXPECT_DOUBLE_EQ(xd[2], 3.0);
+
+    compensated_blas::runtime::clear_deferred_rounding_registrations();
+    compensated_blas::runtime::set_backend(compensated_blas::runtime::backend_kind_t::empty);
+}
+
+TEST(compensated_naive_backend, level1_real_deferred) {
+    compensated_blas::runtime::set_backend(compensated_blas::runtime::backend_kind_t::naive);
+    compensated_blas::runtime::set_compensation_terms(2);
+    compensated_blas::runtime::clear_deferred_rounding_registrations();
+
+    std::int64_t n = 3;
+    std::int64_t inc = 1;
+
+    std::array<double, 3> x{1.0, 1e16, -1e16};
+    std::array<double, 3> y{-2.0, 4.0, 5.0};
+
+    compensated_blas::runtime::deferred_rounding_vector_t desc{};
+    desc.data = x.data();
+    desc.length = x.size();
+    desc.stride = 1;
+    desc.element_size = sizeof(double);
+    desc.alignment = alignof(double);
+    desc.type = compensated_blas::runtime::scalar_type_t::real64;
+    compensated_blas::runtime::register_deferred_rounding_vector(desc);
+
+    desc.data = y.data();
+    compensated_blas::runtime::register_deferred_rounding_vector(desc);
+
+    auto &backend = compensated_blas::impl::get_active_ilp64_backend();
+    backend.dswap(&n, x.data(), &inc, y.data(), &inc);
+    EXPECT_DOUBLE_EQ(x[0], -2.0);
+    EXPECT_DOUBLE_EQ(y[1], 1e16);
+
+    double alpha = 1e-6;
+    backend.dscal(&n, &alpha, x.data(), &inc);
+    backend.dcopy(&n, y.data(), &inc, x.data(), &inc);
+
+    auto x_descriptor = compensated_blas::runtime::find_deferred_rounding_vector(x.data());
+    ASSERT_TRUE(x_descriptor.has_value());
+    ASSERT_NE(x_descriptor->compensation, nullptr);
+    double *x_bins = static_cast<double *>(x_descriptor->compensation);
+    for (std::size_t i = 0; i < x_descriptor->compensation_elements * x_descriptor->compensation_terms; ++i) {
+        EXPECT_DOUBLE_EQ(x_bins[i], 0.0);
+    }
+
+    compensated_blas::runtime::clear_deferred_rounding_registrations();
+    compensated_blas::runtime::set_backend(compensated_blas::runtime::backend_kind_t::empty);
+}
+
+TEST(compensated_naive_backend, level1_reductions) {
+    compensated_blas::runtime::set_backend(compensated_blas::runtime::backend_kind_t::naive);
+    compensated_blas::runtime::set_compensation_terms(2);
+    compensated_blas::runtime::clear_deferred_rounding_registrations();
+
+    std::array<float, 4> xf{3.0f, -4.0f, 1.0f, -2.0f};
+    std::int64_t n = static_cast<std::int64_t>(xf.size());
+    std::int64_t inc = 1;
+
+    auto &backend = compensated_blas::impl::get_active_ilp64_backend();
+    float norm = backend.snrm2(&n, xf.data(), &inc);
+    EXPECT_NEAR(norm, std::sqrt(3.0f * 3.0f + (-4.0f) * (-4.0f) + 1.0f * 1.0f + (-2.0f) * (-2.0f)), 1e-6f);
+
+    float asum = backend.sasum(&n, xf.data(), &inc);
+    EXPECT_FLOAT_EQ(asum, 10.0f);
+
+    std::int64_t idx = backend.isamax(&n, xf.data(), &inc);
+    EXPECT_EQ(idx, 2);
+
+    std::array<double, 5> xd{1.0, -2.0, 3.0, -4.0, 5.0};
+    n = static_cast<std::int64_t>(xd.size());
+    inc = 1;
+    double dnorm = backend.dnrm2(&n, xd.data(), &inc);
+    EXPECT_NEAR(dnorm, std::sqrt(55.0), 1e-12);
+
+    double das = backend.dasum(&n, xd.data(), &inc);
+    EXPECT_DOUBLE_EQ(das, 15.0);
+
+    idx = backend.idamax(&n, xd.data(), &inc);
+    EXPECT_EQ(idx, 5);
+
+    compensated_blas::runtime::clear_deferred_rounding_registrations();
+    compensated_blas::runtime::set_backend(compensated_blas::runtime::backend_kind_t::empty);
+}
+
+namespace {
+
+template <typename T>
+struct reference_rotmg_constants;
+
+template <>
+struct reference_rotmg_constants<float> {
+    static constexpr float gam = 4096.0f;
+    static constexpr float gamsq = gam * gam;
+    static constexpr float rgamsq = 5.96046e-8f;
+};
+
+template <>
+struct reference_rotmg_constants<double> {
+    static constexpr double gam = 4096.0;
+    static constexpr double gamsq = gam * gam;
+    static constexpr double rgamsq = 5.9604645e-8;
+};
+
+template <typename T>
+void reference_rotmg(T *d1, T *d2, T *x1, const T *y1, T *param) {
+    if (!d1 || !d2 || !x1 || !y1 || !param) {
+        return;
+    }
+
+    const T zero = T(0);
+    const T one = T(1);
+    const T neg_one = T(-1);
+    const T neg_two = T(-2);
+    const T gam = reference_rotmg_constants<T>::gam;
+    const T gamsq = reference_rotmg_constants<T>::gamsq;
+    const T rgamsq = reference_rotmg_constants<T>::rgamsq;
+
+    T flag = neg_two;
+    T h11 = zero;
+    T h12 = zero;
+    T h21 = zero;
+    T h22 = zero;
+
+    if (*d1 < zero) {
+        flag = neg_one;
+        *d1 = zero;
+        *d2 = zero;
+        *x1 = zero;
+    } else {
+        const T p2 = (*d2) * (*y1);
+        if (p2 == zero) {
+            param[0] = neg_two;
+            return;
+        }
+
+        const T p1 = (*d1) * (*x1);
+        const T q2 = p2 * (*y1);
+        const T q1 = p1 * (*x1);
+
+        if (std::abs(q1) > std::abs(q2)) {
+            h21 = -(*y1) / (*x1);
+            h12 = p2 / p1;
+            const T u = one - h12 * h21;
+            if (u > zero) {
+                flag = zero;
+                *d1 /= u;
+                *d2 /= u;
+                *x1 *= u;
+            } else {
+                flag = neg_one;
+                *d1 = zero;
+                *d2 = zero;
+                *x1 = zero;
+            }
+        } else {
+            if (q2 < zero) {
+                flag = neg_one;
+                *d1 = zero;
+                *d2 = zero;
+                *x1 = zero;
+            } else {
+                flag = one;
+                h11 = p1 / p2;
+                h22 = (*x1) / (*y1);
+                const T u = one + h11 * h22;
+                const T temp = (*d2) / u;
+                *d2 = (*d1) / u;
+                *d1 = temp;
+                *x1 = (*y1) * u;
+            }
+        }
+
+        if (flag != neg_one) {
+            if (*d1 != zero) {
+                while ((*d1 <= rgamsq) || (*d1 >= gamsq)) {
+                    if (flag == zero) {
+                        h11 = one;
+                        h22 = one;
+                        flag = neg_one;
+                    } else {
+                        h21 = neg_one;
+                        h12 = one;
+                        flag = neg_one;
+                    }
+
+                    if (*d1 <= rgamsq) {
+                        *d1 *= gamsq;
+                        *x1 /= gam;
+                        h11 /= gam;
+                        h12 /= gam;
+                    } else {
+                        *d1 /= gamsq;
+                        *x1 *= gam;
+                        h11 *= gam;
+                        h12 *= gam;
+                    }
+                }
+            }
+
+            if (*d2 != zero) {
+                while ((std::abs(*d2) <= rgamsq) || (std::abs(*d2) >= gamsq)) {
+                    if (flag == zero) {
+                        h11 = one;
+                        h22 = one;
+                        flag = neg_one;
+                    } else {
+                        h21 = neg_one;
+                        h12 = one;
+                        flag = neg_one;
+                    }
+
+                    if (std::abs(*d2) <= rgamsq) {
+                        *d2 *= gamsq;
+                        h21 /= gam;
+                        h22 /= gam;
+                    } else {
+                        *d2 /= gamsq;
+                        h21 *= gam;
+                        h22 *= gam;
+                    }
+                }
+            }
+        }
+    }
+
+    param[0] = flag;
+    if (flag < zero) {
+        param[1] = h11;
+        param[2] = h21;
+        param[3] = h12;
+        param[4] = h22;
+    } else if (flag == zero) {
+        param[2] = h21;
+        param[3] = h12;
+    } else if (flag == one) {
+        param[1] = h11;
+        param[4] = h22;
+    }
+}
+
+template <typename T>
+void reference_rotm(std::int64_t n,
+                    T *x,
+                    std::int64_t incx,
+                    T *y,
+                    std::int64_t incy,
+                    const T *param) {
+    if (n <= 0 || incx == 0 || incy == 0 || !x || !y || !param) {
+        return;
+    }
+
+    const T flag = param[0];
+    if (flag == static_cast<T>(-2)) {
+        return;
+    }
+
+    T h11 = T(0);
+    T h12 = T(0);
+    T h21 = T(0);
+    T h22 = T(0);
+
+    if (flag == static_cast<T>(-1)) {
+        h11 = param[1];
+        h21 = param[2];
+        h12 = param[3];
+        h22 = param[4];
+    } else if (flag == static_cast<T>(0)) {
+        h11 = T(1);
+        h22 = T(1);
+        h21 = param[2];
+        h12 = param[3];
+    } else if (flag == static_cast<T>(1)) {
+        h11 = param[1];
+        h12 = T(1);
+        h21 = static_cast<T>(-1);
+        h22 = param[4];
+    } else {
+        return;
+    }
+
+    T *x_ptr = x;
+    T *y_ptr = y;
+    const std::ptrdiff_t sx = static_cast<std::ptrdiff_t>(incx);
+    const std::ptrdiff_t sy = static_cast<std::ptrdiff_t>(incy);
+
+    if (sx < 0) {
+        x_ptr += static_cast<std::ptrdiff_t>(n - 1) * (-sx);
+    }
+    if (sy < 0) {
+        y_ptr += static_cast<std::ptrdiff_t>(n - 1) * (-sy);
+    }
+
+    for (std::int64_t i = 0; i < n; ++i) {
+        const T x_val = *x_ptr;
+        const T y_val = *y_ptr;
+
+        T new_x;
+        T new_y;
+
+        if (flag == static_cast<T>(-1)) {
+            new_x = h11 * x_val + h12 * y_val;
+            new_y = h21 * x_val + h22 * y_val;
+        } else if (flag == static_cast<T>(0)) {
+            new_x = x_val + h12 * y_val;
+            new_y = h21 * x_val + y_val;
+        } else {
+            new_x = h11 * x_val + y_val;
+            new_y = -x_val + h22 * y_val;
+        }
+
+        *x_ptr = new_x;
+        *y_ptr = new_y;
+
+        x_ptr += sx;
+        y_ptr += sy;
+    }
+}
+
+}  // namespace
+
+TEST(compensated_naive_backend, level1_real_rotations) {
+    compensated_blas::runtime::set_backend(compensated_blas::runtime::backend_kind_t::naive);
+    compensated_blas::runtime::set_compensation_terms(2);
+    compensated_blas::runtime::clear_deferred_rounding_registrations();
+
+    auto &backend = compensated_blas::impl::get_active_ilp64_backend();
+
+    float a_f = 3.0f;
+    float b_f = 4.0f;
+    float c_f = 0.0f;
+    float s_f = 0.0f;
+    backend.srotg(&a_f, &b_f, &c_f, &s_f);
+    EXPECT_NEAR(a_f, 5.0f, 1e-6f);
+    EXPECT_FLOAT_EQ(c_f * 3.0f + s_f * 4.0f, a_f);
+    EXPECT_NEAR(c_f * 4.0f - s_f * 3.0f, 0.0f, 1e-6f);
+
+    std::array<double, 2> xd{1.0, 2.0};
+    std::array<double, 2> yd{3.0, -4.0};
+    std::int64_t n = 2;
+    std::int64_t inc = 1;
+    double c = 0.6;
+    double s = -0.8;
+    backend.drot(&n, xd.data(), &inc, yd.data(), &inc, &c, &s);
+    EXPECT_NEAR(xd[0], c * 1.0 + s * 3.0, 1e-12);
+    EXPECT_NEAR(yd[0], c * 3.0 - s * 1.0, 1e-12);
+
+    compensated_blas::runtime::deferred_rounding_vector_t desc{};
+    std::array<double, 3> x_vec{1.0, 1e16, -1e16};
+    std::array<double, 3> y_vec{-1.0, 2.0, 3.0};
+    n = 3;
+    desc.data = x_vec.data();
+    desc.length = x_vec.size();
+    desc.stride = 1;
+    desc.element_size = sizeof(double);
+    desc.alignment = alignof(double);
+    desc.type = compensated_blas::runtime::scalar_type_t::real64;
+    compensated_blas::runtime::register_deferred_rounding_vector(desc);
+    desc.data = y_vec.data();
+    compensated_blas::runtime::register_deferred_rounding_vector(desc);
+
+    backend.drot(&n, x_vec.data(), &inc, y_vec.data(), &inc, &c, &s);
+    auto descriptor = compensated_blas::runtime::find_deferred_rounding_vector(x_vec.data());
+    ASSERT_TRUE(descriptor.has_value());
+    ASSERT_NE(descriptor->compensation, nullptr);
+
+    compensated_blas::runtime::clear_deferred_rounding_registrations();
+    compensated_blas::runtime::set_backend(compensated_blas::runtime::backend_kind_t::empty);
+}
+
+TEST(compensated_naive_backend, level1_rotmg_and_rotm) {
+    compensated_blas::runtime::set_backend(compensated_blas::runtime::backend_kind_t::naive);
+    compensated_blas::runtime::set_compensation_terms(2);
+    compensated_blas::runtime::clear_deferred_rounding_registrations();
+
+    auto &backend = compensated_blas::impl::get_active_ilp64_backend();
+
+    double d1 = 2.0;
+    double d2 = 3.0;
+    double x1 = 1.5;
+    double y1 = -2.0;
+    double param[5]{};
+
+    backend.drotmg(&d1, &d2, &x1, &y1, param);
+
+    double ref_param[5]{};
+    double ref_d1 = 2.0;
+    double ref_d2 = 3.0;
+    double ref_x1 = 1.5;
+    reference_rotmg(&ref_d1, &ref_d2, &ref_x1, &y1, ref_param);
+
+    for (int i = 0; i < 5; ++i) {
+        EXPECT_NEAR(param[i], ref_param[i], 1e-12);
+    }
+    EXPECT_NEAR(d1, ref_d1, 1e-12);
+    EXPECT_NEAR(d2, ref_d2, 1e-12);
+    EXPECT_NEAR(x1, ref_x1, 1e-12);
+
+    std::array<double, 3> xv{1.0, -2.0, 3.0};
+    std::array<double, 3> yv{4.0, 5.0, -6.0};
+    std::int64_t n = 3;
+    std::int64_t inc = 1;
+
+    backend.drotm(&n, xv.data(), &inc, yv.data(), &inc, param);
+
+    std::array<double, 3> ref_x = {1.0, -2.0, 3.0};
+    std::array<double, 3> ref_y = {4.0, 5.0, -6.0};
+    reference_rotm(n, ref_x.data(), inc, ref_y.data(), inc, ref_param);
+
+    for (std::size_t i = 0; i < xv.size(); ++i) {
+        EXPECT_NEAR(xv[i], ref_x[i], 1e-12);
+        EXPECT_NEAR(yv[i], ref_y[i], 1e-12);
+    }
+
+    compensated_blas::runtime::set_backend(compensated_blas::runtime::backend_kind_t::empty);
+}
+
 TEST(compensated_arithmetic_test, two_prod_complex_recovers_squared_value) {
     const double base = std::nextafter(1.0, 2.0);
     const std::complex<double> value(base, -base);

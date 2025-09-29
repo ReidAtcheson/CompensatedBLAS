@@ -9,6 +9,8 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
+find_package(BLAS REQUIRED)
+
 set(COMPENSATEDBLAS_IMPL_SOURCES
     src/impl/compensated_blas_backend_ilp64.cpp
     src/impl/runtime.cpp
@@ -25,6 +27,7 @@ target_compile_features(compensatedblas_impl PUBLIC cxx_std_17)
 target_include_directories(compensatedblas_impl PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src>
 )
+target_link_libraries(compensatedblas_impl PUBLIC ${BLAS_LIBRARIES})
 
 add_library(compensatedblas SHARED
     src/compensated_blas.cpp

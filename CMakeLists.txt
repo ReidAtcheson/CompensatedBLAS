@@ -13,6 +13,7 @@ set(COMPENSATEDBLAS_IMPL_SOURCES
     src/impl/compensated_blas_backend_ilp64.cpp
     src/impl/runtime.cpp
     src/impl/naive_blas_backend.cpp
+    src/impl/xerbla_shim.cpp
 )
 
 add_library(compensatedblas_impl STATIC
@@ -42,7 +43,7 @@ target_include_directories(compensatedblas PUBLIC
     $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/compensatedblas>
 )
 target_compile_definitions(compensatedblas PUBLIC COMPENSATEDBLAS_USE_ILP64=0)
-target_link_libraries(compensatedblas PRIVATE compensatedblas_impl)
+target_link_libraries(compensatedblas PRIVATE compensatedblas_impl ${CMAKE_DL_LIBS})
 
 add_library(compensatedblas_ilp64 SHARED
     src/compensated_blas.cpp
@@ -59,7 +60,7 @@ target_include_directories(compensatedblas_ilp64 PUBLIC
     $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/compensatedblas>
 )
 target_compile_definitions(compensatedblas_ilp64 PUBLIC COMPENSATEDBLAS_USE_ILP64=1)
-target_link_libraries(compensatedblas_ilp64 PRIVATE compensatedblas_impl)
+target_link_libraries(compensatedblas_ilp64 PRIVATE compensatedblas_impl ${CMAKE_DL_LIBS})
 
 add_library(CompensatedBLAS::compensatedblas ALIAS compensatedblas)
 add_library(CompensatedBLAS::compensatedblas_ilp64 ALIAS compensatedblas_ilp64)

@@ -2,6 +2,7 @@ find_package(GTest REQUIRED)
 
 add_executable(compensated_blas_tests
     compensated_blas_test.cpp
+    kdiv_test.cpp
 )
 
 target_link_libraries(compensated_blas_tests

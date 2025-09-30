@@ -13,6 +13,7 @@
 #include "compensated_blas.hpp"
 #include "impl/compensated_accumulator.hpp"
 #include "impl/compensated_blas_backend_ilp64.hpp"
+#include "impl/naive_blas_backend.hpp"
 
 TEST(compensated_blas_sanity, identity_returns_input) {
     constexpr compensated_blas::index_t value = 123;
@@ -240,6 +241,7 @@ T finalize_with_bins(T &primary, T *bins, std::size_t terms) {
 TEST(compensated_runtime_config, updates_compensation_terms) {
     compensated_blas::runtime::set_default_allocatr();
     compensated_blas::runtime::clear_deferred_rounding_registrations();
+    const std::size_t previous_terms = compensated_blas::runtime::compensation_terms();
     compensated_blas::runtime::set_compensation_terms(2);
     EXPECT_EQ(compensated_blas::runtime::compensation_terms(), 2u);
 
@@ -1166,4 +1168,991 @@ TEST(compensated_arithmetic_test, two_prod_complex_recovers_squared_value) {
 
     EXPECT_EQ(reconstructed.real(), expected.real());
     EXPECT_EQ(reconstructed.imag(), expected.imag());
+}
+namespace {
+
+template <typename T>
+T collapse_bins(T primary, const T *bins, std::size_t terms) {
+    long double acc = static_cast<long double>(primary);
+    for (std::size_t i = 0; i < terms; ++i) {
+        acc += static_cast<long double>(bins[i]);
+    }
+    return static_cast<T>(acc);
+}
+
+template <typename T>
+std::array<long double, 3> forward_substitution_lower(const std::array<T, 9> &a,
+                                                      const std::array<T, 3> &b) {
+    const std::size_t lda = 3;
+    std::array<long double, 3> x{};
+    for (std::size_t i = 0; i < 3; ++i) {
+        long double sum = 0.0L;
+        for (std::size_t j = 0; j < i; ++j) {
+            const std::size_t index = j * lda + i;
+            sum += static_cast<long double>(a[index]) * x[j];
+        }
+        const std::size_t diag_index = i * lda + i;
+        const long double diag = static_cast<long double>(a[diag_index]);
+        x[i] = (static_cast<long double>(b[i]) - sum) / diag;
+    }
+    return x;
+}
+
+}  // namespace
+
+TEST(CompensatedSymv, DeferredStoresAccurately) {
+    const std::int64_t n = 3;
+    const float alpha = 2.0f;
+    const float beta = 0.5f;
+    const float a[9] = {
+        1.0f, 0.0f, 2.0f,
+        0.0f, 3.0f, -4.0f,
+        2.0f, -4.0f, 5.0f,
+    };
+
+    float x_host[n] = {1.0f, -2.0f, 0.5f};
+    float y_host[n] = {0.25f, -1.0f, 2.0f};
+
+    // Register deferred rounding buffers for y.
+    std::vector<float> compensation(3 * 2, 0.0f);
+    const std::size_t previous_terms = compensated_blas::runtime::compensation_terms();
+    compensated_blas::runtime::set_compensation_terms(2);
+    compensated_blas::runtime::deferred_rounding_vector_t descriptor{};
+    descriptor.data = y_host;
+    descriptor.length = static_cast<std::size_t>(n);
+    descriptor.stride = 1;
+    descriptor.element_size = sizeof(float);
+    descriptor.alignment = alignof(float);
+    descriptor.type = compensated_blas::runtime::scalar_type_t::real32;
+    descriptor.compensation = compensation.data();
+    descriptor.compensation_elements = static_cast<std::size_t>(n);
+    descriptor.compensation_terms = 2;
+    compensated_blas::runtime::register_deferred_rounding_vector(descriptor);
+
+    std::int64_t lda = n;
+    std::int64_t stride = 1;
+    auto backend = compensated_blas::impl::detail::acquire_naive_backend();
+    backend->ssymv("U", &n, &alpha, a, &lda, x_host, &stride, &beta, y_host, &stride);
+
+    // Collapse compensated result and compare against reference computed in long double.
+    const long double ref0 = static_cast<long double>(alpha) * (1.0L * 1.0L + 0.0L * -2.0L + 2.0L * 0.5L) + static_cast<long double>(beta) * 0.25L;
+    const long double ref1 = static_cast<long double>(alpha) * (3.0L * -2.0L + -4.0L * 0.5L) + static_cast<long double>(beta) * -1.0L;
+    const long double ref2 = static_cast<long double>(alpha) * (5.0L * 0.5L + -4.0L * -2.0L + 2.0L * 1.0L) + static_cast<long double>(beta) * 2.0L;
+
+    float y0 = collapse_bins(y_host[0], compensation.data() + 0 * 2, 2);
+    float y1 = collapse_bins(y_host[1], compensation.data() + 1 * 2, 2);
+    float y2 = collapse_bins(y_host[2], compensation.data() + 2 * 2, 2);
+
+    EXPECT_NEAR(static_cast<long double>(y0), ref0, 1e-6L);
+    EXPECT_NEAR(static_cast<long double>(y1), ref1, 1e-6L);
+    EXPECT_NEAR(static_cast<long double>(y2), ref2, 1e-6L);
+
+    compensated_blas::runtime::clear_deferred_rounding_registrations();
+    compensated_blas::runtime::set_compensation_terms(previous_terms);
+}
+
+TEST(CompensatedTrsv, LowerNoTransposeDeferred) {
+    const std::int64_t n = 3;
+    const std::array<float, 9> a = {
+        3.0f, -1.0f, 4.0f,
+        0.0f, 2.5f, -3.0f,
+        0.0f, 0.0f, -1.5f,
+    };
+    std::array<float, 3> x = {5.0f, -2.0f, 1.0f};
+    const std::array<float, 3> rhs = x;
+
+    std::vector<float> compensation(3 * 2, 0.0f);
+    const std::size_t previous_terms = compensated_blas::runtime::compensation_terms();
+    compensated_blas::runtime::set_compensation_terms(2);
+
+    compensated_blas::runtime::deferred_rounding_vector_t descriptor{};
+    descriptor.data = x.data();
+    descriptor.length = static_cast<std::size_t>(n);
+    descriptor.stride = 1;
+    descriptor.element_size = sizeof(float);
+    descriptor.alignment = alignof(float);
+    descriptor.type = compensated_blas::runtime::scalar_type_t::real32;
+    descriptor.compensation = compensation.data();
+    descriptor.compensation_elements = static_cast<std::size_t>(n);
+    descriptor.compensation_terms = 2;
+    compensated_blas::runtime::register_deferred_rounding_vector(descriptor);
+
+    std::int64_t lda = n;
+    std::int64_t inc = 1;
+    auto backend = compensated_blas::impl::detail::acquire_naive_backend();
+    backend->strsv("L", "N", "N", &n, a.data(), &lda, x.data(), &inc);
+
+    const auto reference = forward_substitution_lower(a, rhs);
+
+    for (std::size_t i = 0; i < 3; ++i) {
+        float collapsed = collapse_bins(x[i], compensation.data() + i * 2, 2);
+        EXPECT_NEAR(static_cast<long double>(collapsed), reference[i], 1e-5L);
+    }
+
+    compensated_blas::runtime::clear_deferred_rounding_registrations();
+    compensated_blas::runtime::set_compensation_terms(previous_terms);
+}
+
+TEST(CompensatedTrmv, UpperNoTransposeDeferred) {
+    const std::int64_t n = 3;
+    const std::array<double, 9> a = {
+        2.0, 0.0, 0.0,
+        -1.0, -1.5, 0.0,
+        3.5, 4.0, 0.75,
+    };
+    std::array<double, 3> x = {1.0, -2.0, 0.5};
+    const std::array<double, 3> x_initial = x;
+
+    std::vector<double> bins(3 * 2, 0.0);
+    const std::size_t previous_terms = compensated_blas::runtime::compensation_terms();
+    compensated_blas::runtime::set_compensation_terms(2);
+
+    compensated_blas::runtime::deferred_rounding_vector_t descriptor{};
+    descriptor.data = x.data();
+    descriptor.length = static_cast<std::size_t>(n);
+    descriptor.stride = 1;
+    descriptor.element_size = sizeof(double);
+    descriptor.alignment = alignof(double);
+    descriptor.type = compensated_blas::runtime::scalar_type_t::real64;
+    descriptor.compensation = bins.data();
+    descriptor.compensation_elements = static_cast<std::size_t>(n);
+    descriptor.compensation_terms = 2;
+    compensated_blas::runtime::register_deferred_rounding_vector(descriptor);
+
+    std::int64_t lda = n;
+    std::int64_t inc = 1;
+    auto backend = compensated_blas::impl::detail::acquire_naive_backend();
+    backend->dtrmv("U", "N", "N", &n, a.data(), &lda, x.data(), &inc);
+
+    std::array<long double, 3> reference{};
+    reference[0] = static_cast<long double>(a[0]) * x_initial[0] +
+                  static_cast<long double>(a[3]) * x_initial[1] +
+                  static_cast<long double>(a[6]) * x_initial[2];
+    reference[1] = static_cast<long double>(a[4]) * x_initial[1] +
+                  static_cast<long double>(a[7]) * x_initial[2];
+    reference[2] = static_cast<long double>(a[8]) * x_initial[2];
+
+    for (std::size_t i = 0; i < 3; ++i) {
+        double collapsed = collapse_bins(x[i], bins.data() + i * 2, 2);
+        EXPECT_NEAR(static_cast<long double>(collapsed), reference[i], 1e-12L);
+    }
+
+    compensated_blas::runtime::clear_deferred_rounding_registrations();
+    compensated_blas::runtime::set_compensation_terms(previous_terms);
+}
+
+TEST(CompensatedTbmv, UpperNoTransposeDeferred) {
+    const std::int64_t n = 4;
+    const std::int64_t k = 2;
+    const std::int64_t lda = k + 1;
+    const std::array<float, 12> band = {
+        // column 0
+        0.0f, 0.0f, 2.0f,
+        // column 1
+        0.0f, -1.0f, 3.0f,
+        // column 2
+        0.5f, -2.0f, 4.0f,
+        // column 3
+        1.5f, -1.0f, 0.75f,
+    };
+
+    std::array<float, 4> x = {1.0f, -2.0f, 0.5f, 3.0f};
+    const std::array<float, 4> x_initial = x;
+
+    std::vector<float> compensation(n * 2, 0.0f);
+    const std::size_t previous_terms = compensated_blas::runtime::compensation_terms();
+    compensated_blas::runtime::set_compensation_terms(2);
+
+    compensated_blas::runtime::deferred_rounding_vector_t descriptor{};
+    descriptor.data = x.data();
+    descriptor.length = static_cast<std::size_t>(n);
+    descriptor.stride = 1;
+    descriptor.element_size = sizeof(float);
+    descriptor.alignment = alignof(float);
+    descriptor.type = compensated_blas::runtime::scalar_type_t::real32;
+    descriptor.compensation = compensation.data();
+    descriptor.compensation_elements = static_cast<std::size_t>(n);
+    descriptor.compensation_terms = 2;
+    compensated_blas::runtime::register_deferred_rounding_vector(descriptor);
+
+    std::int64_t inc = 1;
+    auto backend = compensated_blas::impl::detail::acquire_naive_backend();
+    backend->stbmv("U", "N", "N", &n, &k, band.data(), &lda, x.data(), &inc);
+
+    const long double full[4][4] = {
+        {2.0L, -1.0L, 0.5L, 0.0L},
+        {0.0L, 3.0L, -2.0L, 1.5L},
+        {0.0L, 0.0L, 4.0L, -1.0L},
+        {0.0L, 0.0L, 0.0L, 0.75L},
+    };
+
+    std::array<long double, 4> reference{};
+    for (std::int64_t row = 0; row < n; ++row) {
+        long double sum = 0.0L;
+        for (std::int64_t col = 0; col < n; ++col) {
+            sum += full[row][col] * static_cast<long double>(x_initial[static_cast<std::size_t>(col)]);
+        }
+        reference[static_cast<std::size_t>(row)] = sum;
+    }
+
+    for (std::size_t i = 0; i < static_cast<std::size_t>(n); ++i) {
+        float collapsed = collapse_bins(x[i], compensation.data() + i * 2, 2);
+        EXPECT_NEAR(static_cast<long double>(collapsed), reference[i], 1e-6L);
+    }
+
+    compensated_blas::runtime::clear_deferred_rounding_registrations();
+    compensated_blas::runtime::set_compensation_terms(previous_terms);
+}
+
+TEST(CompensatedTbmv, LowerTransposeImmediate) {
+    const std::int64_t n = 4;
+    const std::int64_t k = 2;
+    const std::int64_t lda = k + 1;
+    const std::array<double, 12> band = {
+        // column 0
+        2.0, -1.5, 0.75,
+        // column 1
+        -3.0, 1.25, -0.5,
+        // column 2
+        1.5, 2.2, 0.0,
+        // column 3
+        0.5, 0.0, 0.0,
+    };
+
+    std::array<double, 4> x = {1.0, -1.0, 0.5, 2.0};
+    const std::array<double, 4> x_initial = x;
+
+    std::int64_t inc = 1;
+    auto backend = compensated_blas::impl::detail::acquire_naive_backend();
+    backend->dtbmv("L", "T", "N", &n, &k, band.data(), &lda, x.data(), &inc);
+
+    const long double full[4][4] = {
+        {2.0L, 0.0L, 0.0L, 0.0L},
+        {-1.5L, -3.0L, 0.0L, 0.0L},
+        {0.75L, 1.25L, 1.5L, 0.0L},
+        {0.0L, -0.5L, 2.2L, 0.5L},
+    };
+
+    std::array<long double, 4> reference{};
+    for (std::int64_t row = 0; row < n; ++row) {
+        long double sum = 0.0L;
+        for (std::int64_t col = 0; col < n; ++col) {
+            sum += full[col][row] * static_cast<long double>(x_initial[static_cast<std::size_t>(col)]);
+        }
+        reference[static_cast<std::size_t>(row)] = sum;
+    }
+
+    for (std::size_t i = 0; i < static_cast<std::size_t>(n); ++i) {
+        EXPECT_NEAR(x[i], static_cast<double>(reference[i]), 1e-12);
+    }
+}
+
+TEST(CompensatedTbsv, UpperNoTransposeDeferred) {
+    const std::int64_t n = 4;
+    const std::int64_t k = 2;
+    const std::int64_t lda = k + 1;
+    const std::array<float, 12> band = {
+        // column 0
+        0.0f, 0.0f, 2.0f,
+        // column 1
+        0.0f, -1.0f, 3.0f,
+        // column 2
+        0.5f, -2.0f, 4.0f,
+        // column 3
+        1.5f, -1.0f, 0.75f,
+    };
+
+    const std::array<float, 4> x_expected = {0.5f, -1.25f, 0.75f, 2.0f};
+
+    const long double full[4][4] = {
+        {2.0L, -1.0L, 0.5L, 0.0L},
+        {0.0L, 3.0L, -2.0L, 1.5L},
+        {0.0L, 0.0L, 4.0L, -1.0L},
+        {0.0L, 0.0L, 0.0L, 0.75L},
+    };
+
+    std::array<float, 4> rhs{};
+    for (std::int64_t row = 0; row < n; ++row) {
+        long double sum = 0.0L;
+        for (std::int64_t col = 0; col < n; ++col) {
+            sum += full[row][col] * static_cast<long double>(x_expected[static_cast<std::size_t>(col)]);
+        }
+        rhs[static_cast<std::size_t>(row)] = static_cast<float>(sum);
+    }
+
+    std::vector<float> compensation(n * 2, 0.0f);
+    const std::size_t previous_terms = compensated_blas::runtime::compensation_terms();
+    compensated_blas::runtime::set_compensation_terms(2);
+
+    compensated_blas::runtime::deferred_rounding_vector_t descriptor{};
+    descriptor.data = rhs.data();
+    descriptor.length = static_cast<std::size_t>(n);
+    descriptor.stride = 1;
+    descriptor.element_size = sizeof(float);
+    descriptor.alignment = alignof(float);
+    descriptor.type = compensated_blas::runtime::scalar_type_t::real32;
+    descriptor.compensation = compensation.data();
+    descriptor.compensation_elements = static_cast<std::size_t>(n);
+    descriptor.compensation_terms = 2;
+    compensated_blas::runtime::register_deferred_rounding_vector(descriptor);
+
+    std::int64_t inc = 1;
+    auto backend = compensated_blas::impl::detail::acquire_naive_backend();
+    backend->stbsv("U", "N", "N", &n, &k, band.data(), &lda, rhs.data(), &inc);
+
+    for (std::size_t i = 0; i < static_cast<std::size_t>(n); ++i) {
+        float collapsed = collapse_bins(rhs[i], compensation.data() + i * 2, 2);
+        EXPECT_NEAR(static_cast<long double>(collapsed), static_cast<long double>(x_expected[i]), 1e-6L);
+    }
+
+    compensated_blas::runtime::clear_deferred_rounding_registrations();
+    compensated_blas::runtime::set_compensation_terms(previous_terms);
+}
+
+TEST(CompensatedTbsv, LowerTransposeImmediate) {
+    const std::int64_t n = 4;
+    const std::int64_t k = 2;
+    const std::int64_t lda = k + 1;
+    const std::array<double, 12> band = {
+        // column 0
+        2.0, -1.5, 0.75,
+        // column 1
+        -3.0, 1.25, -0.5,
+        // column 2
+        1.5, 2.2, 0.0,
+        // column 3
+        0.5, 0.0, 0.0,
+    };
+
+    const std::array<double, 4> x_expected = {1.0, -0.5, 2.5, -1.0};
+
+    const long double full[4][4] = {
+        {2.0L, 0.0L, 0.0L, 0.0L},
+        {-1.5L, -3.0L, 0.0L, 0.0L},
+        {0.75L, 1.25L, 1.5L, 0.0L},
+        {0.0L, -0.5L, 2.2L, 0.5L},
+    };
+
+    std::array<double, 4> rhs{};
+    for (std::int64_t col = 0; col < n; ++col) {
+        long double sum = 0.0L;
+        for (std::int64_t row = 0; row < n; ++row) {
+            sum += full[row][col] * static_cast<long double>(x_expected[static_cast<std::size_t>(row)]);
+        }
+        rhs[static_cast<std::size_t>(col)] = static_cast<double>(sum);
+    }
+
+    std::int64_t inc = 1;
+    auto backend = compensated_blas::impl::detail::acquire_naive_backend();
+    backend->dtbsv("L", "T", "N", &n, &k, band.data(), &lda, rhs.data(), &inc);
+
+    for (std::size_t i = 0; i < static_cast<std::size_t>(n); ++i) {
+        EXPECT_NEAR(rhs[i], static_cast<double>(x_expected[i]), 1e-12);
+    }
+}
+
+TEST(CompensatedTpsv, UpperNoTransposeDeferred) {
+    const std::int64_t n = 4;
+    const std::array<float, 10> packed = {
+        // column 0
+        2.0f,
+        // column 1
+        -1.0f, 3.0f,
+        // column 2
+        0.5f, -2.0f, 4.0f,
+        // column 3
+        0.0f, 1.5f, -1.0f, 0.75f,
+    };
+
+    const std::array<float, 4> x_expected = {0.5f, -1.25f, 0.75f, 2.0f};
+
+    const long double full[4][4] = {
+        {2.0L, -1.0L, 0.5L, 0.0L},
+        {0.0L, 3.0L, -2.0L, 1.5L},
+        {0.0L, 0.0L, 4.0L, -1.0L},
+        {0.0L, 0.0L, 0.0L, 0.75L},
+    };
+
+    std::array<float, 4> rhs{};
+    for (std::int64_t row = 0; row < n; ++row) {
+        long double sum = 0.0L;
+        for (std::int64_t col = 0; col < n; ++col) {
+            sum += full[row][col] * static_cast<long double>(x_expected[static_cast<std::size_t>(col)]);
+        }
+        rhs[static_cast<std::size_t>(row)] = static_cast<float>(sum);
+    }
+
+    std::vector<float> compensation(n * 2, 0.0f);
+    const std::size_t previous_terms = compensated_blas::runtime::compensation_terms();
+    compensated_blas::runtime::set_compensation_terms(2);
+
+    compensated_blas::runtime::deferred_rounding_vector_t descriptor{};
+    descriptor.data = rhs.data();
+    descriptor.length = static_cast<std::size_t>(n);
+    descriptor.stride = 1;
+    descriptor.element_size = sizeof(float);
+    descriptor.alignment = alignof(float);
+    descriptor.type = compensated_blas::runtime::scalar_type_t::real32;
+    descriptor.compensation = compensation.data();
+    descriptor.compensation_elements = static_cast<std::size_t>(n);
+    descriptor.compensation_terms = 2;
+    compensated_blas::runtime::register_deferred_rounding_vector(descriptor);
+
+    std::int64_t inc = 1;
+    auto backend = compensated_blas::impl::detail::acquire_naive_backend();
+    backend->stpsv("U", "N", "N", &n, packed.data(), rhs.data(), &inc);
+
+    for (std::size_t i = 0; i < static_cast<std::size_t>(n); ++i) {
+        float collapsed = collapse_bins(rhs[i], compensation.data() + i * 2, 2);
+        EXPECT_NEAR(static_cast<long double>(collapsed), static_cast<long double>(x_expected[i]), 1e-6L);
+    }
+
+    compensated_blas::runtime::clear_deferred_rounding_registrations();
+    compensated_blas::runtime::set_compensation_terms(previous_terms);
+}
+
+TEST(CompensatedTpsv, LowerTransposeImmediate) {
+    const std::int64_t n = 4;
+    const std::array<double, 10> packed = {
+        // column 0
+        2.0, -1.5, 0.75, 0.0,
+        // column 1
+        -3.0, 1.25, -0.5,
+        // column 2
+        1.5, 2.2,
+        // column 3
+        0.5,
+    };
+
+    const std::array<double, 4> x_expected = {1.0, -0.5, 2.5, -1.0};
+
+    const long double full[4][4] = {
+        {2.0L, 0.0L, 0.0L, 0.0L},
+        {-1.5L, -3.0L, 0.0L, 0.0L},
+        {0.75L, 1.25L, 1.5L, 0.0L},
+        {0.0L, -0.5L, 2.2L, 0.5L},
+    };
+
+    std::array<double, 4> rhs{};
+    for (std::int64_t col = 0; col < n; ++col) {
+        long double sum = 0.0L;
+        for (std::int64_t row = 0; row < n; ++row) {
+            sum += full[row][col] * static_cast<long double>(x_expected[static_cast<std::size_t>(row)]);
+        }
+        rhs[static_cast<std::size_t>(col)] = static_cast<double>(sum);
+    }
+
+    std::int64_t inc = 1;
+    auto backend = compensated_blas::impl::detail::acquire_naive_backend();
+    backend->dtpsv("L", "T", "N", &n, packed.data(), rhs.data(), &inc);
+
+    for (std::size_t i = 0; i < static_cast<std::size_t>(n); ++i) {
+        EXPECT_NEAR(rhs[i], static_cast<double>(x_expected[i]), 1e-12);
+    }
+}
+
+TEST(CompensatedGer, DeferredAccumulatesCorrectly) {
+    const std::int64_t m = 3;
+    const std::int64_t n = 4;
+    const std::int64_t lda = m;
+    const float alpha = 1.25f;
+
+    const std::array<float, 12> initial = {
+        1.0f, 0.5f, -1.0f,
+        2.0f, -0.5f, 1.5f,
+        -0.25f, 0.75f, 0.5f,
+        1.0f, -1.5f, 2.0f,
+    };
+
+    std::array<float, 12> a = initial;
+
+    const std::array<float, 3> x = {1.0f, -2.0f, 0.5f};
+    const std::array<float, 4> y = {2.0f, -1.0f, 3.0f, 0.25f};
+
+    compensated_blas::runtime::set_compensation_terms(2);
+    compensated_blas::runtime::clear_deferred_rounding_registrations();
+
+    compensated_blas::runtime::deferred_rounding_matrix_t descriptor{};
+    descriptor.data = a.data();
+    descriptor.rows = static_cast<std::size_t>(m);
+    descriptor.cols = static_cast<std::size_t>(n);
+    descriptor.leading_dimension = static_cast<std::size_t>(lda);
+    descriptor.element_size = sizeof(float);
+    descriptor.alignment = alignof(float);
+    descriptor.type = compensated_blas::runtime::scalar_type_t::real32;
+    descriptor.row_major = false;
+    compensated_blas::runtime::register_deferred_rounding_matrix(descriptor);
+
+    std::int64_t incx = 1;
+    std::int64_t incy = 1;
+    auto backend = compensated_blas::impl::detail::acquire_naive_backend();
+    backend->sger(&m, &n, &alpha, x.data(), &incx, y.data(), &incy, a.data(), &lda);
+
+    auto matrix_descriptor = compensated_blas::runtime::find_deferred_rounding_matrix(a.data());
+    ASSERT_TRUE(matrix_descriptor.has_value());
+    auto *bins = static_cast<float *>(matrix_descriptor->compensation);
+    ASSERT_NE(bins, nullptr);
+    ASSERT_FALSE(matrix_descriptor->row_major);
+    ASSERT_EQ(matrix_descriptor->leading_dimension, static_cast<std::size_t>(lda));
+
+    std::array<long double, 12> reference{};
+    for (std::int64_t col = 0; col < n; ++col) {
+        const long double y_value = static_cast<long double>(y[static_cast<std::size_t>(col)]);
+        for (std::int64_t row = 0; row < m; ++row) {
+            const std::size_t index = static_cast<std::size_t>(col) * static_cast<std::size_t>(lda) + static_cast<std::size_t>(row);
+            const long double base = static_cast<long double>(initial[index]);
+            const long double x_value = static_cast<long double>(x[static_cast<std::size_t>(row)]);
+            reference[index] = base + static_cast<long double>(alpha) * x_value * y_value;
+        }
+    }
+
+    for (std::int64_t col = 0; col < n; ++col) {
+        for (std::int64_t row = 0; row < m; ++row) {
+            const std::size_t index = static_cast<std::size_t>(col) * matrix_descriptor->leading_dimension + static_cast<std::size_t>(row);
+            float &primary = a[static_cast<std::size_t>(col) * static_cast<std::size_t>(lda) + static_cast<std::size_t>(row)];
+            float *element_bins = bins + index * matrix_descriptor->compensation_terms;
+            (void)finalize_with_bins(primary, element_bins, matrix_descriptor->compensation_terms);
+            EXPECT_NEAR(static_cast<long double>(primary), reference[static_cast<std::size_t>(col) * static_cast<std::size_t>(lda) + static_cast<std::size_t>(row)], 1e-5L);
+        }
+    }
+
+    compensated_blas::runtime::clear_deferred_rounding_registrations();
+}
+
+TEST(CompensatedGer, ImmediateMatchesReference) {
+    const std::int64_t m = 2;
+    const std::int64_t n = 3;
+    const std::int64_t lda = m;
+    const double alpha = -0.75;
+
+    const std::array<double, 6> initial = {
+        1.0, -2.0,
+        0.5, 3.5,
+        -1.5, 2.25,
+    };
+
+    std::array<double, 6> a = initial;
+
+    const std::array<double, 2> x = {2.0, -1.0};
+    const std::array<double, 3> y = {0.5, 1.25, -2.0};
+
+    std::int64_t incx = 1;
+    std::int64_t incy = 1;
+    auto backend = compensated_blas::impl::detail::acquire_naive_backend();
+    backend->dger(&m, &n, &alpha, x.data(), &incx, y.data(), &incy, a.data(), &lda);
+
+    for (std::int64_t col = 0; col < n; ++col) {
+        const long double y_value = static_cast<long double>(y[static_cast<std::size_t>(col)]);
+        for (std::int64_t row = 0; row < m; ++row) {
+            const std::size_t index = static_cast<std::size_t>(col) * static_cast<std::size_t>(lda) + static_cast<std::size_t>(row);
+            const long double expected = static_cast<long double>(initial[index]) +
+                                         static_cast<long double>(alpha) * static_cast<long double>(x[static_cast<std::size_t>(row)]) * y_value;
+            EXPECT_NEAR(static_cast<long double>(a[index]), expected, 1e-12L);
+        }
+    }
+}
+
+TEST(CompensatedSpr, UpperDeferredVectors) {
+    const std::int64_t n = 4;
+    const float alpha = 1.5f;
+
+    const std::array<float, 16> initial_full = {
+        2.0f, -1.0f, 0.5f, -0.25f,
+        -1.0f, 3.0f, -0.5f, 1.25f,
+        0.5f, -0.5f, 1.75f, -1.5f,
+        -0.25f, 1.25f, -1.5f, 0.75f,
+    };
+
+    std::array<float, 10> ap{};
+    std::size_t offset = 0;
+    for (std::int64_t col = 0; col < n; ++col) {
+        for (std::int64_t row = 0; row <= col; ++row) {
+            ap[offset++] = initial_full[static_cast<std::size_t>(col) * static_cast<std::size_t>(n) + static_cast<std::size_t>(row)];
+        }
+    }
+
+    std::array<float, 4> x = {1.0f, -2.0f, 0.5f, 3.0f};
+
+    const std::size_t previous_terms = compensated_blas::runtime::compensation_terms();
+    compensated_blas::runtime::set_compensation_terms(2);
+    compensated_blas::runtime::clear_deferred_rounding_registrations();
+
+    std::vector<float> x_bins(static_cast<std::size_t>(n) * compensated_blas::runtime::compensation_terms(), 0.0f);
+    compensated_blas::runtime::deferred_rounding_vector_t descriptor{};
+    descriptor.data = x.data();
+    descriptor.length = static_cast<std::size_t>(n);
+    descriptor.stride = 1;
+    descriptor.element_size = sizeof(float);
+    descriptor.alignment = alignof(float);
+    descriptor.type = compensated_blas::runtime::scalar_type_t::real32;
+    descriptor.compensation = x_bins.data();
+    descriptor.compensation_elements = static_cast<std::size_t>(n);
+    descriptor.compensation_terms = compensated_blas::runtime::compensation_terms();
+    compensated_blas::runtime::register_deferred_rounding_vector(descriptor);
+
+    std::int64_t incx = 1;
+    auto backend = compensated_blas::impl::detail::acquire_naive_backend();
+    backend->sspr("U", &n, &alpha, x.data(), &incx, ap.data());
+
+    std::array<long double, 16> expected{};
+    for (std::int64_t col = 0; col < n; ++col) {
+        for (std::int64_t row = 0; row < n; ++row) {
+            const std::size_t index = static_cast<std::size_t>(col) * static_cast<std::size_t>(n) + static_cast<std::size_t>(row);
+            expected[index] = static_cast<long double>(initial_full[index]) +
+                              static_cast<long double>(alpha) * static_cast<long double>(x[row]) * static_cast<long double>(x[col]);
+        }
+    }
+
+    std::array<float, 16> result{};
+    offset = 0;
+    for (std::int64_t col = 0; col < n; ++col) {
+        for (std::int64_t row = 0; row <= col; ++row) {
+            const float value = ap[offset++];
+            result[static_cast<std::size_t>(col) * static_cast<std::size_t>(n) + static_cast<std::size_t>(row)] = value;
+            result[static_cast<std::size_t>(row) * static_cast<std::size_t>(n) + static_cast<std::size_t>(col)] = value;
+        }
+    }
+
+    for (std::size_t i = 0; i < result.size(); ++i) {
+        EXPECT_NEAR(static_cast<long double>(result[i]), expected[i], 1e-5L);
+    }
+
+    compensated_blas::runtime::clear_deferred_rounding_registrations();
+    compensated_blas::runtime::set_compensation_terms(previous_terms);
+}
+
+TEST(CompensatedSpr, LowerImmediate) {
+    const std::int64_t n = 3;
+    const double alpha = -0.5;
+
+    const std::array<double, 9> initial_full = {
+        1.5, -0.5, 0.75,
+        -0.5, 2.25, -1.0,
+        0.75, -1.0, 0.5,
+    };
+
+    std::array<double, 6> ap{};
+    std::size_t offset = 0;
+    for (std::int64_t col = 0; col < n; ++col) {
+        for (std::int64_t row = col; row < n; ++row) {
+            ap[offset++] = initial_full[static_cast<std::size_t>(col) * static_cast<std::size_t>(n) + static_cast<std::size_t>(row)];
+        }
+    }
+
+    const std::array<double, 3> x = {1.0, -2.0, 0.5};
+
+    std::int64_t incx = 1;
+    auto backend = compensated_blas::impl::detail::acquire_naive_backend();
+    backend->dspr("L", &n, &alpha, x.data(), &incx, ap.data());
+
+    std::array<long double, 9> expected{};
+    for (std::int64_t col = 0; col < n; ++col) {
+        for (std::int64_t row = 0; row < n; ++row) {
+            const std::size_t index = static_cast<std::size_t>(col) * static_cast<std::size_t>(n) + static_cast<std::size_t>(row);
+            expected[index] = static_cast<long double>(initial_full[index]) +
+                              static_cast<long double>(alpha) * static_cast<long double>(x[row]) * static_cast<long double>(x[col]);
+        }
+    }
+
+    std::array<double, 9> result{};
+    offset = 0;
+    for (std::int64_t col = 0; col < n; ++col) {
+        for (std::int64_t row = col; row < n; ++row) {
+            const double value = ap[offset++];
+            result[static_cast<std::size_t>(col) * static_cast<std::size_t>(n) + static_cast<std::size_t>(row)] = value;
+            result[static_cast<std::size_t>(row) * static_cast<std::size_t>(n) + static_cast<std::size_t>(col)] = value;
+        }
+    }
+
+    for (std::size_t i = 0; i < result.size(); ++i) {
+        EXPECT_NEAR(static_cast<long double>(result[i]), expected[i], 1e-12L);
+    }
+}
+
+TEST(CompensatedSyr2, UpperDeferred) {
+    const std::int64_t n = 3;
+    const std::int64_t lda = n;
+    const double alpha = 0.6;
+
+    const std::array<double, 9> initial = {
+        1.0, 0.25, -0.5,
+        0.25, 2.0, 1.25,
+        -0.5, 1.25, -1.0,
+    };
+
+    std::array<double, 9> a = initial;
+    const std::array<double, 3> x = {1.0, -1.5, 0.75};
+    const std::array<double, 3> y = {0.5, 2.0, -1.0};
+
+    compensated_blas::runtime::set_compensation_terms(2);
+    compensated_blas::runtime::clear_deferred_rounding_registrations();
+
+    compensated_blas::runtime::deferred_rounding_matrix_t descriptor{};
+    descriptor.data = a.data();
+    descriptor.rows = static_cast<std::size_t>(n);
+    descriptor.cols = static_cast<std::size_t>(n);
+    descriptor.leading_dimension = static_cast<std::size_t>(lda);
+    descriptor.element_size = sizeof(double);
+    descriptor.alignment = alignof(double);
+    descriptor.type = compensated_blas::runtime::scalar_type_t::real64;
+    descriptor.row_major = false;
+    compensated_blas::runtime::register_deferred_rounding_matrix(descriptor);
+
+    std::int64_t incx = 1;
+    std::int64_t incy = 1;
+    auto backend = compensated_blas::impl::detail::acquire_naive_backend();
+    backend->dsyr2("U", &n, &alpha, x.data(), &incx, y.data(), &incy, a.data(), &lda);
+
+    auto matrix_descriptor = compensated_blas::runtime::find_deferred_rounding_matrix(a.data());
+    ASSERT_TRUE(matrix_descriptor.has_value());
+    auto *bins = static_cast<double *>(matrix_descriptor->compensation);
+    ASSERT_NE(bins, nullptr);
+
+    std::array<long double, 9> reference = {};
+    for (std::int64_t col = 0; col < n; ++col) {
+        const long double x_col = static_cast<long double>(x[static_cast<std::size_t>(col)]);
+        const long double y_col = static_cast<long double>(y[static_cast<std::size_t>(col)]);
+        for (std::int64_t row = 0; row <= col; ++row) {
+            const long double x_row = static_cast<long double>(x[static_cast<std::size_t>(row)]);
+            const long double y_row = static_cast<long double>(y[static_cast<std::size_t>(row)]);
+            const std::size_t index = static_cast<std::size_t>(col) * static_cast<std::size_t>(lda) + static_cast<std::size_t>(row);
+            reference[index] = static_cast<long double>(initial[index]) + static_cast<long double>(alpha) * (x_row * y_col + y_row * x_col);
+        }
+    }
+
+    for (std::int64_t col = 0; col < n; ++col) {
+        for (std::int64_t row = 0; row <= col; ++row) {
+            const std::size_t index = static_cast<std::size_t>(col) * matrix_descriptor->leading_dimension + static_cast<std::size_t>(row);
+            double &primary = a[static_cast<std::size_t>(col) * static_cast<std::size_t>(lda) + static_cast<std::size_t>(row)];
+            double *element_bins = bins + index * matrix_descriptor->compensation_terms;
+            (void)finalize_with_bins(primary, element_bins, matrix_descriptor->compensation_terms);
+            EXPECT_NEAR(static_cast<long double>(primary), reference[static_cast<std::size_t>(col) * static_cast<std::size_t>(lda) + static_cast<std::size_t>(row)], 1e-12L);
+        }
+    }
+
+    compensated_blas::runtime::clear_deferred_rounding_registrations();
+}
+
+TEST(CompensatedSyr2, LowerImmediate) {
+    const std::int64_t n = 3;
+    const std::int64_t lda = n;
+    const float alpha = -1.1f;
+
+    const std::array<float, 9> initial = {
+        2.0f, -0.5f, 0.25f,
+        -0.5f, 1.5f, -1.0f,
+        0.25f, -1.0f, 0.75f,
+    };
+
+    std::array<float, 9> a = initial;
+    const std::array<float, 3> x = {0.5f, -1.0f, 2.0f};
+    const std::array<float, 3> y = {1.0f, 0.25f, -0.75f};
+
+    std::int64_t incx = 1;
+    std::int64_t incy = 1;
+    auto backend = compensated_blas::impl::detail::acquire_naive_backend();
+    backend->ssyr2("L", &n, &alpha, x.data(), &incx, y.data(), &incy, a.data(), &lda);
+
+    for (std::int64_t col = 0; col < n; ++col) {
+        const long double x_col = static_cast<long double>(x[static_cast<std::size_t>(col)]);
+        const long double y_col = static_cast<long double>(y[static_cast<std::size_t>(col)]);
+        for (std::int64_t row = col; row < n; ++row) {
+            const std::size_t index = static_cast<std::size_t>(col) * static_cast<std::size_t>(lda) + static_cast<std::size_t>(row);
+            const long double x_row = static_cast<long double>(x[static_cast<std::size_t>(row)]);
+            const long double y_row = static_cast<long double>(y[static_cast<std::size_t>(row)]);
+            const long double expected = static_cast<long double>(initial[index]) +
+                                         static_cast<long double>(alpha) * (x_row * y_col + y_row * x_col);
+            EXPECT_NEAR(static_cast<long double>(a[index]), expected, 1e-6L);
+        }
+    }
+}
+
+TEST(CompensatedSyr, UpperDeferred) {
+    const std::int64_t n = 3;
+    const std::int64_t lda = n;
+    const float alpha = 0.75f;
+
+    const std::array<float, 9> initial = {
+        1.0f, 0.5f, -0.25f,
+        0.5f, 2.0f, 1.5f,
+        -0.25f, 1.5f, 0.75f,
+    };
+
+    std::array<float, 9> a = initial;
+    const std::array<float, 3> x = {1.0f, -2.0f, 0.5f};
+
+    compensated_blas::runtime::set_compensation_terms(2);
+    compensated_blas::runtime::clear_deferred_rounding_registrations();
+
+    compensated_blas::runtime::deferred_rounding_matrix_t descriptor{};
+    descriptor.data = a.data();
+    descriptor.rows = static_cast<std::size_t>(n);
+    descriptor.cols = static_cast<std::size_t>(n);
+    descriptor.leading_dimension = static_cast<std::size_t>(lda);
+    descriptor.element_size = sizeof(float);
+    descriptor.alignment = alignof(float);
+    descriptor.type = compensated_blas::runtime::scalar_type_t::real32;
+    descriptor.row_major = false;
+    compensated_blas::runtime::register_deferred_rounding_matrix(descriptor);
+
+    std::int64_t incx = 1;
+    auto backend = compensated_blas::impl::detail::acquire_naive_backend();
+    backend->ssyr("U", &n, &alpha, x.data(), &incx, a.data(), &lda);
+
+    auto matrix_descriptor = compensated_blas::runtime::find_deferred_rounding_matrix(a.data());
+    ASSERT_TRUE(matrix_descriptor.has_value());
+    auto *bins = static_cast<float *>(matrix_descriptor->compensation);
+    ASSERT_NE(bins, nullptr);
+
+    std::array<long double, 9> reference{};
+    for (std::int64_t col = 0; col < n; ++col) {
+        const long double x_col = static_cast<long double>(x[static_cast<std::size_t>(col)]);
+        for (std::int64_t row = 0; row <= col; ++row) {
+            const long double x_row = static_cast<long double>(x[static_cast<std::size_t>(row)]);
+            const std::size_t index = static_cast<std::size_t>(col) * static_cast<std::size_t>(lda) + static_cast<std::size_t>(row);
+            reference[index] = static_cast<long double>(initial[index]) + static_cast<long double>(alpha) * x_row * x_col;
+        }
+    }
+
+    for (std::int64_t col = 0; col < n; ++col) {
+        for (std::int64_t row = 0; row <= col; ++row) {
+            const std::size_t index = static_cast<std::size_t>(col) * matrix_descriptor->leading_dimension + static_cast<std::size_t>(row);
+            float &primary = a[static_cast<std::size_t>(col) * static_cast<std::size_t>(lda) + static_cast<std::size_t>(row)];
+            float *element_bins = bins + index * matrix_descriptor->compensation_terms;
+            (void)finalize_with_bins(primary, element_bins, matrix_descriptor->compensation_terms);
+            EXPECT_NEAR(static_cast<long double>(primary), reference[static_cast<std::size_t>(col) * static_cast<std::size_t>(lda) + static_cast<std::size_t>(row)], 1e-5L);
+        }
+    }
+
+    compensated_blas::runtime::clear_deferred_rounding_registrations();
+}
+
+TEST(CompensatedSyr, LowerImmediate) {
+    const std::int64_t n = 3;
+    const std::int64_t lda = n;
+    const double alpha = -0.5;
+
+    const std::array<double, 9> initial = {
+        2.0, -1.0, 0.0,
+        -1.0, 3.5, -0.25,
+        0.0, -0.25, 0.75,
+    };
+
+    std::array<double, 9> a = initial;
+    const std::array<double, 3> x = {1.5, -2.0, 0.75};
+
+    std::int64_t incx = 1;
+    auto backend = compensated_blas::impl::detail::acquire_naive_backend();
+    backend->dsyr("L", &n, &alpha, x.data(), &incx, a.data(), &lda);
+
+    for (std::int64_t col = 0; col < n; ++col) {
+        for (std::int64_t row = col; row < n; ++row) {
+            const std::size_t index = static_cast<std::size_t>(col) * static_cast<std::size_t>(lda) + static_cast<std::size_t>(row);
+            const long double expected = static_cast<long double>(initial[index]) +
+                                         static_cast<long double>(alpha) * static_cast<long double>(x[static_cast<std::size_t>(row)]) * static_cast<long double>(x[static_cast<std::size_t>(col)]);
+            EXPECT_NEAR(static_cast<long double>(a[index]), expected, 1e-12L);
+        }
+    }
+}
+
+TEST(CompensatedTpmv, UpperNoTransposeDeferred) {
+    const std::int64_t n = 4;
+    const std::array<float, 10> packed = {
+        // column 0
+        2.0f,
+        // column 1
+        -1.0f, 3.0f,
+        // column 2
+        0.5f, -2.0f, 4.0f,
+        // column 3
+        0.0f, 1.5f, -1.0f, 0.75f,
+    };
+
+    std::array<float, 4> x = {1.0f, -2.0f, 0.5f, 3.0f};
+    const std::array<float, 4> x_initial = x;
+
+    std::vector<float> compensation(n * 2, 0.0f);
+    const std::size_t previous_terms = compensated_blas::runtime::compensation_terms();
+    compensated_blas::runtime::set_compensation_terms(2);
+
+    compensated_blas::runtime::deferred_rounding_vector_t descriptor{};
+    descriptor.data = x.data();
+    descriptor.length = static_cast<std::size_t>(n);
+    descriptor.stride = 1;
+    descriptor.element_size = sizeof(float);
+    descriptor.alignment = alignof(float);
+    descriptor.type = compensated_blas::runtime::scalar_type_t::real32;
+    descriptor.compensation = compensation.data();
+    descriptor.compensation_elements = static_cast<std::size_t>(n);
+    descriptor.compensation_terms = 2;
+    compensated_blas::runtime::register_deferred_rounding_vector(descriptor);
+
+    std::int64_t inc = 1;
+    auto backend = compensated_blas::impl::detail::acquire_naive_backend();
+    backend->stpmv("U", "N", "N", &n, packed.data(), x.data(), &inc);
+
+    const long double full[4][4] = {
+        {2.0L, -1.0L, 0.5L, 0.0L},
+        {0.0L, 3.0L, -2.0L, 1.5L},
+        {0.0L, 0.0L, 4.0L, -1.0L},
+        {0.0L, 0.0L, 0.0L, 0.75L},
+    };
+
+    std::array<long double, 4> reference{};
+    for (std::int64_t row = 0; row < n; ++row) {
+        long double sum = 0.0L;
+        for (std::int64_t col = 0; col < n; ++col) {
+            sum += full[row][col] * static_cast<long double>(x_initial[static_cast<std::size_t>(col)]);
+        }
+        reference[static_cast<std::size_t>(row)] = sum;
+    }
+
+    for (std::size_t i = 0; i < static_cast<std::size_t>(n); ++i) {
+        float collapsed = collapse_bins(x[i], compensation.data() + i * 2, 2);
+        EXPECT_NEAR(static_cast<long double>(collapsed), reference[i], 1e-6L);
+    }
+
+    compensated_blas::runtime::clear_deferred_rounding_registrations();
+    compensated_blas::runtime::set_compensation_terms(previous_terms);
+}
+
+TEST(CompensatedTpmv, LowerTransposeImmediate) {
+    const std::int64_t n = 4;
+    const std::array<double, 10> packed = {
+        // column 0
+        2.0, -1.5, 0.75, 0.0,
+        // column 1
+        -3.0, 1.25, -0.5,
+        // column 2
+        1.5, 2.2,
+        // column 3
+        0.5,
+    };
+
+    std::array<double, 4> x = {1.0, -1.0, 0.5, 2.0};
+    const std::array<double, 4> x_initial = x;
+
+    std::int64_t inc = 1;
+    auto backend = compensated_blas::impl::detail::acquire_naive_backend();
+    backend->dtpmv("L", "T", "N", &n, packed.data(), x.data(), &inc);
+
+    const long double full[4][4] = {
+        {2.0L, 0.0L, 0.0L, 0.0L},
+        {-1.5L, -3.0L, 0.0L, 0.0L},
+        {0.75L, 1.25L, 1.5L, 0.0L},
+        {0.0L, -0.5L, 2.2L, 0.5L},
+    };
+
+    std::array<long double, 4> reference{};
+    for (std::int64_t row = 0; row < n; ++row) {
+        long double sum = 0.0L;
+        for (std::int64_t col = 0; col < n; ++col) {
+            sum += full[col][row] * static_cast<long double>(x_initial[static_cast<std::size_t>(col)]);
+        }
+        reference[static_cast<std::size_t>(row)] = sum;
+    }
+
+    for (std::size_t i = 0; i < static_cast<std::size_t>(n); ++i) {
+        EXPECT_NEAR(x[i], static_cast<double>(reference[i]), 1e-12);
+    }
 }

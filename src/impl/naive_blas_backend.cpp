@@ -102,6 +102,13 @@ const T &matrix_at(const T *matrix,
                    std::size_t column);
 
 template <typename T>
+T &matrix_at(T *matrix,
+             std::size_t leading_dimension,
+             bool row_major,
+             std::size_t row,
+             std::size_t column);
+
+template <typename T>
 T kdiv(T numerator, T denominator, T &primary, T *bins, std::size_t terms) {
     primary = numerator / denominator;
     if (bins && terms > 0) {
@@ -964,6 +971,148 @@ public:
                const double *beta,
                double *y,
                const std::int64_t *incy) override;
+    void stbmv(const char *uplo,
+               const char *trans,
+               const char *diag,
+               const std::int64_t *n,
+               const std::int64_t *k,
+               const float *a,
+               const std::int64_t *lda,
+               float *x,
+               const std::int64_t *incx) override;
+    void dtbmv(const char *uplo,
+               const char *trans,
+               const char *diag,
+               const std::int64_t *n,
+               const std::int64_t *k,
+               const double *a,
+               const std::int64_t *lda,
+               double *x,
+               const std::int64_t *incx) override;
+    void stbsv(const char *uplo,
+               const char *trans,
+               const char *diag,
+               const std::int64_t *n,
+               const std::int64_t *k,
+               const float *a,
+               const std::int64_t *lda,
+               float *x,
+               const std::int64_t *incx) override;
+    void dtbsv(const char *uplo,
+               const char *trans,
+               const char *diag,
+               const std::int64_t *n,
+               const std::int64_t *k,
+               const double *a,
+               const std::int64_t *lda,
+               double *x,
+               const std::int64_t *incx) override;
+    void stpmv(const char *uplo,
+               const char *trans,
+               const char *diag,
+               const std::int64_t *n,
+               const float *ap,
+               float *x,
+               const std::int64_t *incx) override;
+    void dtpmv(const char *uplo,
+               const char *trans,
+               const char *diag,
+               const std::int64_t *n,
+               const double *ap,
+               double *x,
+               const std::int64_t *incx) override;
+    void stpsv(const char *uplo,
+               const char *trans,
+               const char *diag,
+               const std::int64_t *n,
+               const float *ap,
+               float *x,
+               const std::int64_t *incx) override;
+    void dtpsv(const char *uplo,
+               const char *trans,
+               const char *diag,
+               const std::int64_t *n,
+               const double *ap,
+               double *x,
+               const std::int64_t *incx) override;
+    void sger(const std::int64_t *m,
+              const std::int64_t *n,
+              const float *alpha,
+              const float *x,
+              const std::int64_t *incx,
+              const float *y,
+              const std::int64_t *incy,
+              float *a,
+              const std::int64_t *lda) override;
+    void dger(const std::int64_t *m,
+              const std::int64_t *n,
+              const double *alpha,
+              const double *x,
+              const std::int64_t *incx,
+              const double *y,
+              const std::int64_t *incy,
+              double *a,
+              const std::int64_t *lda) override;
+    void ssyr(const char *uplo,
+              const std::int64_t *n,
+              const float *alpha,
+              const float *x,
+              const std::int64_t *incx,
+              float *a,
+              const std::int64_t *lda) override;
+    void dsyr(const char *uplo,
+              const std::int64_t *n,
+              const double *alpha,
+              const double *x,
+              const std::int64_t *incx,
+              double *a,
+              const std::int64_t *lda) override;
+    void sspr(const char *uplo,
+              const std::int64_t *n,
+              const float *alpha,
+              const float *x,
+              const std::int64_t *incx,
+              float *ap) override;
+    void dspr(const char *uplo,
+              const std::int64_t *n,
+              const double *alpha,
+              const double *x,
+              const std::int64_t *incx,
+              double *ap) override;
+    void sspr2(const char *uplo,
+               const std::int64_t *n,
+               const float *alpha,
+               const float *x,
+               const std::int64_t *incx,
+               const float *y,
+               const std::int64_t *incy,
+               float *ap) override;
+    void dspr2(const char *uplo,
+               const std::int64_t *n,
+               const double *alpha,
+               const double *x,
+               const std::int64_t *incx,
+               const double *y,
+               const std::int64_t *incy,
+               double *ap) override;
+    void ssyr2(const char *uplo,
+               const std::int64_t *n,
+               const float *alpha,
+               const float *x,
+               const std::int64_t *incx,
+               const float *y,
+               const std::int64_t *incy,
+               float *a,
+               const std::int64_t *lda) override;
+    void dsyr2(const char *uplo,
+               const std::int64_t *n,
+               const double *alpha,
+               const double *x,
+               const std::int64_t *incx,
+               const double *y,
+               const std::int64_t *incy,
+               double *a,
+               const std::int64_t *lda) override;
     void strsv(const char *uplo,
                const char *trans,
                const char *diag,
@@ -1167,8 +1316,6 @@ void gemv_impl(const char *routine,
     const bool transpose = transposed || conjugated;
     const bool valid_trans = nota || transpose;
 
-    std::int64_t nrow_a = nota ? m : n;
-
     std::int64_t info = 0;
     if (!valid_trans) {
         info = 1;
@@ -1176,7 +1323,7 @@ void gemv_impl(const char *routine,
         info = 2;
     } else if (n < 0) {
         info = 3;
-    } else if (lda < std::max<std::int64_t>(std::int64_t{1}, nrow_a)) {
+    } else if (lda < std::max<std::int64_t>(std::int64_t{1}, m)) {
         info = 6;
     } else if (incx == 0) {
         info = 8;
@@ -1192,7 +1339,7 @@ void gemv_impl(const char *routine,
     const std::int64_t len_y = transpose ? n : m;
     const std::int64_t len_x = transpose ? m : n;
 
-    if (len_y <= 0) {
+    if (len_x <= 0 || len_y <= 0) {
         return;
     }
 
@@ -1386,7 +1533,7 @@ void gbmv_impl(const char *routine,
     const std::int64_t len_x = transpose ? m : n;
     const std::int64_t len_y = transpose ? n : m;
 
-    if (len_y <= 0) {
+    if (len_x <= 0 || len_y <= 0) {
         return;
     }
 
@@ -1779,11 +1926,11 @@ void sbmv_impl(const char *routine,
     } else if (k < 0) {
         info = 3;
     } else if (lda < (k + 1)) {
-        info = 5;
+        info = 6;
     } else if (incx == 0) {
-        info = 7;
+        info = 8;
     } else if (incy == 0) {
-        info = 10;
+        info = 11;
     }
 
     if (info != 0) {
@@ -1988,9 +2135,9 @@ void spmv_impl(const char *routine,
     } else if (n < 0) {
         info = 2;
     } else if (incx == 0) {
-        info = 5;
+        info = 6;
     } else if (incy == 0) {
-        info = 8;
+        info = 9;
     }
 
     if (info != 0) {
@@ -2173,7 +2320,7 @@ void trsv_impl(const char *routine,
 
     const char trans_value = trans ? *trans : '\0';
     const bool nota = (trans_value == 'N' || trans_value == 'n');
-    const bool transpose = (trans_value == 'T' || trans_value == 't');
+    const bool transpose = (trans_value == 'T' || trans_value == 't' || trans_value == 'C' || trans_value == 'c');
 
     const char diag_value = diag ? *diag : '\0';
     const bool unit_diagonal = (diag_value == 'U' || diag_value == 'u');
@@ -2182,7 +2329,7 @@ void trsv_impl(const char *routine,
     std::int64_t info = 0;
     if (!(upper || lower)) {
         info = 1;
-    } else if (!(nota || transpose)) {
+    } else if (!(nota || (trans_value == 'T' || trans_value == 't' || trans_value == 'C' || trans_value == 'c'))) {
         info = 2;
     } else if (!(unit_diagonal || non_unit)) {
         info = 3;
@@ -2394,6 +2541,1455 @@ void trsv_impl(const char *routine,
 }
 
 template <typename T>
+void tbmv_impl(const char *routine,
+               const char *uplo,
+               const char *trans,
+               const char *diag,
+               std::int64_t n,
+               std::int64_t k,
+               const T *a,
+               std::size_t lda,
+               T *x,
+               std::ptrdiff_t incx) {
+    const char uplo_value = uplo ? *uplo : '\0';
+    const bool upper = (uplo_value == 'U' || uplo_value == 'u');
+    const bool lower = (uplo_value == 'L' || uplo_value == 'l');
+
+    const char trans_value = trans ? *trans : '\0';
+    const bool nota = (trans_value == 'N' || trans_value == 'n');
+    const bool transpose = (trans_value == 'T' || trans_value == 't' || trans_value == 'C' || trans_value == 'c');
+
+    const char diag_value = diag ? *diag : '\0';
+    const bool unit_diagonal = (diag_value == 'U' || diag_value == 'u');
+    const bool non_unit = (diag_value == 'N' || diag_value == 'n');
+
+    std::int64_t info = 0;
+    if (!(upper || lower)) {
+        info = 1;
+    } else if (!(nota || transpose)) {
+        info = 2;
+    } else if (!(unit_diagonal || non_unit)) {
+        info = 3;
+    } else if (n < 0) {
+        info = 4;
+    } else if (k < 0) {
+        info = 5;
+    } else if (lda < static_cast<std::size_t>(k + 1)) {
+        info = 7;
+    } else if (incx == 0) {
+        info = 9;
+    }
+
+    if (info != 0) {
+        xerbla_(routine, &info);
+        return;
+    }
+
+    if (n == 0) {
+        return;
+    }
+
+    const std::int64_t band_width = k;
+    const std::size_t diag_offset = upper ? static_cast<std::size_t>(band_width) : std::size_t{0};
+    const std::size_t lda_stride = lda;
+
+    const std::size_t global_terms = compensated_blas::runtime::compensation_terms();
+    std::vector<T> &local_bins = thread_local_bins<T>(global_terms);
+    T *sum_bins_buffer = local_bins.empty() ? nullptr : local_bins.data();
+
+    auto x_metadata = fetch_deferred_vector(x, incx > 0 ? incx : -incx);
+    const bool x_has_bins = x_metadata.compensation != nullptr && x_metadata.terms > 0;
+    const std::size_t x_terms = x_metadata.terms;
+
+    T *x_base = adjust_pointer(x, n, incx);
+
+    auto element_ptr = [&](std::int64_t index) -> T * {
+        return x_base + index * incx;
+    };
+
+    auto element_bins = [&](std::int64_t index) -> T * {
+        return x_has_bins ? deferred_bins_at<T>(x_metadata, static_cast<std::size_t>(index)) : nullptr;
+    };
+
+    auto column_ptr = [&](std::int64_t column) -> const T * {
+        return a + static_cast<std::size_t>(column) * lda_stride;
+    };
+
+    auto update_target = [&](std::int64_t index, T sum_primary, const T *diag_column) {
+        T *target_ptr = element_ptr(index);
+        T *target_bins = element_bins(index);
+        T base_value = *target_ptr;
+        if (target_bins) {
+            base_value = reconstruct_from_bins(base_value, target_bins, x_terms);
+            zero_bins(target_bins, x_terms);
+        }
+
+        T result = sum_primary;
+        if (unit_diagonal) {
+            result += base_value;
+        } else {
+            const T diag_value = diag_column[diag_offset];
+            result += diag_value * base_value;
+        }
+
+        *target_ptr = result;
+        if (target_bins) {
+            zero_bins(target_bins, x_terms);
+        }
+    };
+
+    if (nota) {
+        if (upper) {
+            for (std::int64_t i = 0; i < n; ++i) {
+                T sum_primary{};
+                T *sum_bins = sum_bins_buffer;
+                if (sum_bins) {
+                    zero_bins(sum_bins, global_terms);
+                }
+
+                const std::int64_t j_max = std::min<std::int64_t>(n - 1, i + band_width);
+                for (std::int64_t j = i + 1; j <= j_max; ++j) {
+                    const T *column = column_ptr(j);
+                    const std::int64_t row_index_signed = band_width + i - j;
+                    const T a_value = column[static_cast<std::size_t>(row_index_signed)];
+                    if (is_zero(a_value)) {
+                        continue;
+                    }
+                    T *x_ptr = element_ptr(j);
+                    T *x_bins = element_bins(j);
+                    T x_value = *x_ptr;
+                    if (x_bins) {
+                        x_value = reconstruct_from_bins(x_value, x_bins, x_terms);
+                    }
+                    if (is_zero(x_value)) {
+                        continue;
+                    }
+                    accumulate_value(sum_primary, sum_bins, global_terms, a_value * x_value);
+                }
+
+                sum_primary = finalize_value(sum_primary, sum_bins, global_terms);
+                update_target(i, sum_primary, column_ptr(i));
+            }
+        } else {
+            for (std::int64_t i = n - 1; i >= 0; --i) {
+                T sum_primary{};
+                T *sum_bins = sum_bins_buffer;
+                if (sum_bins) {
+                    zero_bins(sum_bins, global_terms);
+                }
+
+                const std::int64_t j_min = std::max<std::int64_t>(0, i - band_width);
+                if (j_min <= i - 1) {
+                    for (std::int64_t j = i - 1; j >= j_min; --j) {
+                        const T *column = column_ptr(j);
+                        const std::int64_t row_index_signed = i - j;
+                        const T a_value = column[static_cast<std::size_t>(row_index_signed)];
+                        if (is_zero(a_value)) {
+                            continue;
+                        }
+                        T *x_ptr = element_ptr(j);
+                        T *x_bins = element_bins(j);
+                        T x_value = *x_ptr;
+                        if (x_bins) {
+                            x_value = reconstruct_from_bins(x_value, x_bins, x_terms);
+                        }
+                        if (is_zero(x_value)) {
+                            continue;
+                        }
+                        accumulate_value(sum_primary, sum_bins, global_terms, a_value * x_value);
+                    }
+                }
+
+                sum_primary = finalize_value(sum_primary, sum_bins, global_terms);
+                update_target(i, sum_primary, column_ptr(i));
+            }
+        }
+    } else {  // transpose
+        if (upper) {
+            for (std::int64_t i = n - 1; i >= 0; --i) {
+                T sum_primary{};
+                T *sum_bins = sum_bins_buffer;
+                if (sum_bins) {
+                    zero_bins(sum_bins, global_terms);
+                }
+
+                const std::int64_t j_min = std::max<std::int64_t>(0, i - band_width);
+                if (j_min <= i - 1) {
+                    const T *column = column_ptr(i);
+                    for (std::int64_t j = j_min; j < i; ++j) {
+                        const std::int64_t row_index_signed = band_width + j - i;
+                        const T a_value = column[static_cast<std::size_t>(row_index_signed)];
+                        if (is_zero(a_value)) {
+                            continue;
+                        }
+                        T *x_ptr = element_ptr(j);
+                        T *x_bins = element_bins(j);
+                        T x_value = *x_ptr;
+                        if (x_bins) {
+                            x_value = reconstruct_from_bins(x_value, x_bins, x_terms);
+                        }
+                        if (is_zero(x_value)) {
+                            continue;
+                        }
+                        accumulate_value(sum_primary, sum_bins, global_terms, a_value * x_value);
+                    }
+                }
+
+                sum_primary = finalize_value(sum_primary, sum_bins, global_terms);
+                update_target(i, sum_primary, column_ptr(i));
+            }
+        } else {
+            for (std::int64_t i = 0; i < n; ++i) {
+                T sum_primary{};
+                T *sum_bins = sum_bins_buffer;
+                if (sum_bins) {
+                    zero_bins(sum_bins, global_terms);
+                }
+
+                const std::int64_t j_max = std::min<std::int64_t>(n - 1, i + band_width);
+                if (i + 1 <= j_max) {
+                    const T *column = column_ptr(i);
+                    for (std::int64_t j = i + 1; j <= j_max; ++j) {
+                        const std::int64_t row_index_signed = j - i;
+                        const T a_value = column[static_cast<std::size_t>(row_index_signed)];
+                        if (is_zero(a_value)) {
+                            continue;
+                        }
+                        T *x_ptr = element_ptr(j);
+                        T *x_bins = element_bins(j);
+                        T x_value = *x_ptr;
+                        if (x_bins) {
+                            x_value = reconstruct_from_bins(x_value, x_bins, x_terms);
+                        }
+                        if (is_zero(x_value)) {
+                            continue;
+                        }
+                        accumulate_value(sum_primary, sum_bins, global_terms, a_value * x_value);
+                    }
+                }
+
+                sum_primary = finalize_value(sum_primary, sum_bins, global_terms);
+                update_target(i, sum_primary, column_ptr(i));
+            }
+        }
+    }
+}
+
+template <typename T>
+void tbsv_impl(const char *routine,
+               const char *uplo,
+               const char *trans,
+               const char *diag,
+               std::int64_t n,
+               std::int64_t k,
+               const T *a,
+               std::size_t lda,
+               T *x,
+               std::ptrdiff_t incx) {
+    const char uplo_value = uplo ? *uplo : '\0';
+    const bool upper = (uplo_value == 'U' || uplo_value == 'u');
+    const bool lower = (uplo_value == 'L' || uplo_value == 'l');
+
+    const char trans_value = trans ? *trans : '\0';
+    const bool nota = (trans_value == 'N' || trans_value == 'n');
+    const bool transpose = (trans_value == 'T' || trans_value == 't' || trans_value == 'C' || trans_value == 'c');
+
+    const char diag_value = diag ? *diag : '\0';
+    const bool unit_diagonal = (diag_value == 'U' || diag_value == 'u');
+    const bool non_unit = (diag_value == 'N' || diag_value == 'n');
+
+    std::int64_t info = 0;
+    if (!(upper || lower)) {
+        info = 1;
+    } else if (!(nota || transpose)) {
+        info = 2;
+    } else if (!(unit_diagonal || non_unit)) {
+        info = 3;
+    } else if (n < 0) {
+        info = 4;
+    } else if (k < 0) {
+        info = 5;
+    } else if (lda < static_cast<std::size_t>(k + 1)) {
+        info = 7;
+    } else if (incx == 0) {
+        info = 9;
+    }
+
+    if (info != 0) {
+        xerbla_(routine, &info);
+        return;
+    }
+
+    if (n == 0) {
+        return;
+    }
+
+    const std::int64_t band_width = k;
+    const std::size_t lda_stride = lda;
+
+    const std::size_t global_terms = compensated_blas::runtime::compensation_terms();
+    std::vector<T> &local_bins = thread_local_bins<T>(global_terms);
+    T *sum_bins = local_bins.empty() ? nullptr : local_bins.data();
+
+    auto x_metadata = fetch_deferred_vector(x, incx > 0 ? incx : -incx);
+    const bool x_has_bins = x_metadata.compensation != nullptr && x_metadata.terms > 0;
+    const std::size_t x_terms = x_metadata.terms;
+
+    T *x_base = adjust_pointer(x, n, incx);
+
+    auto element_ptr = [&](std::int64_t index) -> T * {
+        return x_base + index * incx;
+    };
+
+    auto element_bins = [&](std::int64_t index) -> T * {
+        return x_has_bins ? deferred_bins_at<T>(x_metadata, static_cast<std::size_t>(index)) : nullptr;
+    };
+
+    auto element_value = [&](std::int64_t index) -> T {
+        T *ptr = element_ptr(index);
+        T *bins = element_bins(index);
+        if (bins) {
+            return reconstruct_from_bins(*ptr, bins, x_terms);
+        }
+        return *ptr;
+    };
+
+    auto column_ptr = [&](std::int64_t column) -> const T * {
+        return a + static_cast<std::size_t>(column) * lda_stride;
+    };
+
+    auto band_value = [&](std::int64_t row, std::int64_t col) -> T {
+        if (upper) {
+            const std::int64_t diff = col - row;
+            if (diff < 0 || diff > band_width) {
+                return T{};
+            }
+            const T *column = column_ptr(col);
+            const std::size_t row_index = static_cast<std::size_t>(band_width + row - col);
+            return column[row_index];
+        }
+        const std::int64_t diff = row - col;
+        if (diff < 0 || diff > band_width) {
+            return T{};
+        }
+        const T *column = column_ptr(col);
+        const std::size_t row_index = static_cast<std::size_t>(diff);
+        return column[row_index];
+    };
+
+    if (nota) {
+        if (upper) {
+            for (std::int64_t i = n - 1; i >= 0; --i) {
+                T sum_primary{};
+                if (sum_bins) {
+                    zero_bins(sum_bins, global_terms);
+                }
+
+                const std::int64_t j_max = std::min<std::int64_t>(n - 1, i + band_width);
+                for (std::int64_t j = i + 1; j <= j_max; ++j) {
+                    const T a_value = band_value(i, j);
+                    if (is_zero(a_value)) {
+                        continue;
+                    }
+                    const T x_value = element_value(j);
+                    if (is_zero(x_value)) {
+                        continue;
+                    }
+                    accumulate_value(sum_primary, sum_bins, global_terms, a_value * x_value);
+                }
+
+                T dot = sum_primary;
+                if (sum_bins) {
+                    dot = finalize_value(sum_primary, sum_bins, global_terms);
+                }
+                T numerator = element_value(i) - dot;
+                T *target_ptr = element_ptr(i);
+                T *target_bins = element_bins(i);
+                if (!unit_diagonal) {
+                    const T diag_entry = band_value(i, i);
+                    const T result = kdiv(numerator, diag_entry, *target_ptr, target_bins, x_terms);
+                    if (!target_bins) {
+                        *target_ptr = result;
+                    }
+                } else {
+                    if (target_bins && x_terms > 0) {
+                        zero_bins(target_bins, x_terms);
+                    }
+                    *target_ptr = numerator;
+                }
+            }
+        } else {
+            for (std::int64_t i = 0; i < n; ++i) {
+                T sum_primary{};
+                if (sum_bins) {
+                    zero_bins(sum_bins, global_terms);
+                }
+
+                const std::int64_t j_min = std::max<std::int64_t>(0, i - band_width);
+                for (std::int64_t j = j_min; j <= i - 1; ++j) {
+                    const T a_value = band_value(i, j);
+                    if (is_zero(a_value)) {
+                        continue;
+                    }
+                    const T x_value = element_value(j);
+                    if (is_zero(x_value)) {
+                        continue;
+                    }
+                    accumulate_value(sum_primary, sum_bins, global_terms, a_value * x_value);
+                }
+
+                T dot = sum_primary;
+                if (sum_bins) {
+                    dot = finalize_value(sum_primary, sum_bins, global_terms);
+                }
+                T numerator = element_value(i) - dot;
+                T *target_ptr = element_ptr(i);
+                T *target_bins = element_bins(i);
+                if (!unit_diagonal) {
+                    const T diag_entry = band_value(i, i);
+                    const T result = kdiv(numerator, diag_entry, *target_ptr, target_bins, x_terms);
+                    if (!target_bins) {
+                        *target_ptr = result;
+                    }
+                } else {
+                    if (target_bins && x_terms > 0) {
+                        zero_bins(target_bins, x_terms);
+                    }
+                    *target_ptr = numerator;
+                }
+            }
+        }
+    } else {  // transpose
+        if (upper) {
+            for (std::int64_t i = 0; i < n; ++i) {
+                T sum_primary{};
+                if (sum_bins) {
+                    zero_bins(sum_bins, global_terms);
+                }
+
+                const std::int64_t j_min = std::max<std::int64_t>(0, i - band_width);
+                for (std::int64_t j = j_min; j <= i - 1; ++j) {
+                    const T a_value = band_value(j, i);
+                    if (is_zero(a_value)) {
+                        continue;
+                    }
+                    const T x_value = element_value(j);
+                    if (is_zero(x_value)) {
+                        continue;
+                    }
+                    accumulate_value(sum_primary, sum_bins, global_terms, a_value * x_value);
+                }
+
+                T dot = sum_primary;
+                if (sum_bins) {
+                    dot = finalize_value(sum_primary, sum_bins, global_terms);
+                }
+                T numerator = element_value(i) - dot;
+                T *target_ptr = element_ptr(i);
+                T *target_bins = element_bins(i);
+                if (!unit_diagonal) {
+                    const T diag_entry = band_value(i, i);
+                    const T result = kdiv(numerator, diag_entry, *target_ptr, target_bins, x_terms);
+                    if (!target_bins) {
+                        *target_ptr = result;
+                    }
+                } else {
+                    if (target_bins && x_terms > 0) {
+                        zero_bins(target_bins, x_terms);
+                    }
+                    *target_ptr = numerator;
+                }
+            }
+        } else {
+            for (std::int64_t i = n - 1; i >= 0; --i) {
+                T sum_primary{};
+                if (sum_bins) {
+                    zero_bins(sum_bins, global_terms);
+                }
+
+                const std::int64_t j_max = std::min<std::int64_t>(n - 1, i + band_width);
+                for (std::int64_t j = i + 1; j <= j_max; ++j) {
+                    const T a_value = band_value(j, i);
+                    if (is_zero(a_value)) {
+                        continue;
+                    }
+                    const T x_value = element_value(j);
+                    if (is_zero(x_value)) {
+                        continue;
+                    }
+                    accumulate_value(sum_primary, sum_bins, global_terms, a_value * x_value);
+                }
+
+                T dot = sum_primary;
+                if (sum_bins) {
+                    dot = finalize_value(sum_primary, sum_bins, global_terms);
+                }
+                T numerator = element_value(i) - dot;
+                T *target_ptr = element_ptr(i);
+                T *target_bins = element_bins(i);
+                if (!unit_diagonal) {
+                    const T diag_entry = band_value(i, i);
+                    const T result = kdiv(numerator, diag_entry, *target_ptr, target_bins, x_terms);
+                    if (!target_bins) {
+                        *target_ptr = result;
+                    }
+                } else {
+                    if (target_bins && x_terms > 0) {
+                        zero_bins(target_bins, x_terms);
+                    }
+                    *target_ptr = numerator;
+                }
+            }
+        }
+    }
+}
+
+template <typename T>
+void tpmv_impl(const char *routine,
+               const char *uplo,
+               const char *trans,
+               const char *diag,
+               std::int64_t n,
+               const T *ap,
+               T *x,
+               std::ptrdiff_t incx) {
+    const char uplo_value = uplo ? *uplo : '\0';
+    const bool upper = (uplo_value == 'U' || uplo_value == 'u');
+    const bool lower = (uplo_value == 'L' || uplo_value == 'l');
+
+    const char trans_value = trans ? *trans : '\0';
+    const bool nota = (trans_value == 'N' || trans_value == 'n');
+    const bool transpose = (trans_value == 'T' || trans_value == 't' || trans_value == 'C' || trans_value == 'c');
+
+    const char diag_value = diag ? *diag : '\0';
+    const bool unit_diagonal = (diag_value == 'U' || diag_value == 'u');
+    const bool non_unit = (diag_value == 'N' || diag_value == 'n');
+
+    std::int64_t info = 0;
+    if (!(upper || lower)) {
+        info = 1;
+    } else if (!(nota || transpose)) {
+        info = 2;
+    } else if (!(unit_diagonal || non_unit)) {
+        info = 3;
+    } else if (n < 0) {
+        info = 4;
+    } else if (incx == 0) {
+        info = 7;
+    }
+
+    if (info != 0) {
+        xerbla_(routine, &info);
+        return;
+    }
+
+    if (n == 0) {
+        return;
+    }
+
+    const std::size_t n_size = static_cast<std::size_t>(n);
+    const std::size_t global_terms = compensated_blas::runtime::compensation_terms();
+    std::vector<T> &local_bins = thread_local_bins<T>(global_terms);
+
+    auto x_metadata = fetch_deferred_vector(x, incx > 0 ? incx : -incx);
+    const bool x_has_bins = x_metadata.compensation != nullptr && x_metadata.terms > 0;
+    const std::size_t x_terms = x_metadata.terms;
+
+    T *x_base = adjust_pointer(x, n, incx);
+
+    auto element_ptr = [&](std::int64_t index) -> T * {
+        return x_base + index * incx;
+    };
+
+    auto element_bins = [&](std::int64_t index) -> T * {
+        return x_has_bins ? deferred_bins_at<T>(x_metadata, static_cast<std::size_t>(index)) : nullptr;
+    };
+
+    auto packed_at = [&](std::int64_t row, std::int64_t col) -> T {
+        if (upper) {
+            if (row > col) {
+                return T{};
+            }
+            const std::size_t offset = packed_triangle_offset<T>(n_size, static_cast<std::size_t>(col), true);
+            return ap[offset + static_cast<std::size_t>(row)];
+        }
+        if (row < col) {
+            return T{};
+        }
+        const std::size_t offset = packed_triangle_offset<T>(n_size, static_cast<std::size_t>(col), false);
+        return ap[offset + static_cast<std::size_t>(row - col)];
+    };
+
+    auto process_element = [&](std::int64_t index,
+                               std::int64_t range_begin,
+                               std::int64_t range_end,
+                               std::int64_t step,
+                               bool use_transpose) {
+        T sum_primary{};
+        T *sum_bins = local_bins.empty() ? nullptr : local_bins.data();
+        if (sum_bins) {
+            zero_bins(sum_bins, global_terms);
+        }
+
+        for (std::int64_t j = range_begin; j != range_end; j += step) {
+            const T a_value = use_transpose ? packed_at(j, index) : packed_at(index, j);
+            if (is_zero(a_value)) {
+                continue;
+            }
+            T *x_ptr = element_ptr(j);
+            T *x_bins = element_bins(j);
+            T x_value = *x_ptr;
+            if (x_bins) {
+                x_value = reconstruct_from_bins(x_value, x_bins, x_terms);
+            }
+            if (is_zero(x_value)) {
+                continue;
+            }
+            accumulate_value(sum_primary, sum_bins, global_terms, a_value * x_value);
+        }
+
+        if (sum_bins) {
+            sum_primary = finalize_value(sum_primary, sum_bins, global_terms);
+        }
+
+        T *target_ptr = element_ptr(index);
+        T *target_bins = element_bins(index);
+        T base_value = *target_ptr;
+        if (target_bins) {
+            base_value = reconstruct_from_bins(base_value, target_bins, x_terms);
+            zero_bins(target_bins, x_terms);
+        }
+
+        T result = base_value;
+        if (!unit_diagonal) {
+            const T diag_entry = packed_at(index, index);
+            result *= diag_entry;
+        }
+        result += sum_primary;
+
+        *target_ptr = result;
+        if (target_bins) {
+            zero_bins(target_bins, x_terms);
+        }
+    };
+
+    if (nota) {
+        if (upper) {
+            for (std::int64_t i = 0; i < n; ++i) {
+                process_element(i, i + 1, n, 1, false);
+            }
+        } else {
+            for (std::int64_t i = n - 1; i >= 0; --i) {
+                process_element(i, 0, i, 1, false);
+            }
+        }
+    } else {
+        if (upper) {
+            for (std::int64_t i = n - 1; i >= 0; --i) {
+                process_element(i, 0, i, 1, true);
+            }
+        } else {
+            for (std::int64_t i = 0; i < n; ++i) {
+                process_element(i, i + 1, n, 1, true);
+            }
+        }
+    }
+}
+
+template <typename T>
+void tpsv_impl(const char *routine,
+               const char *uplo,
+               const char *trans,
+               const char *diag,
+               std::int64_t n,
+               const T *ap,
+               T *x,
+               std::ptrdiff_t incx) {
+    const char uplo_value = uplo ? *uplo : '\0';
+    const bool upper = (uplo_value == 'U' || uplo_value == 'u');
+    const bool lower = (uplo_value == 'L' || uplo_value == 'l');
+
+    const char trans_value = trans ? *trans : '\0';
+    const bool nota = (trans_value == 'N' || trans_value == 'n');
+    const bool transpose = (trans_value == 'T' || trans_value == 't' || trans_value == 'C' || trans_value == 'c');
+
+    const char diag_value = diag ? *diag : '\0';
+    const bool unit_diagonal = (diag_value == 'U' || diag_value == 'u');
+    const bool non_unit = (diag_value == 'N' || diag_value == 'n');
+
+    std::int64_t info = 0;
+    if (!(upper || lower)) {
+        info = 1;
+    } else if (!(nota || transpose)) {
+        info = 2;
+    } else if (!(unit_diagonal || non_unit)) {
+        info = 3;
+    } else if (n < 0) {
+        info = 4;
+    } else if (incx == 0) {
+        info = 7;
+    }
+
+    if (info != 0) {
+        xerbla_(routine, &info);
+        return;
+    }
+
+    if (n == 0) {
+        return;
+    }
+
+    const std::size_t n_size = static_cast<std::size_t>(n);
+    const std::size_t global_terms = compensated_blas::runtime::compensation_terms();
+    std::vector<T> &local_bins = thread_local_bins<T>(global_terms);
+    T *sum_bins = local_bins.empty() ? nullptr : local_bins.data();
+
+    auto x_metadata = fetch_deferred_vector(x, incx > 0 ? incx : -incx);
+    const bool x_has_bins = x_metadata.compensation != nullptr && x_metadata.terms > 0;
+    const std::size_t x_terms = x_metadata.terms;
+
+    T *x_base = adjust_pointer(x, n, incx);
+
+    auto element_ptr = [&](std::int64_t index) -> T * {
+        return x_base + index * incx;
+    };
+
+    auto element_bins = [&](std::int64_t index) -> T * {
+        return x_has_bins ? deferred_bins_at<T>(x_metadata, static_cast<std::size_t>(index)) : nullptr;
+    };
+
+    auto element_value = [&](std::int64_t index) -> T {
+        T *ptr = element_ptr(index);
+        T *bins = element_bins(index);
+        if (bins) {
+            return reconstruct_from_bins(*ptr, bins, x_terms);
+        }
+        return *ptr;
+    };
+
+    auto packed_at = [&](std::int64_t row, std::int64_t col) -> T {
+        if (upper) {
+            if (row > col) {
+                return T{};
+            }
+            const std::size_t offset = packed_triangle_offset<T>(n_size, static_cast<std::size_t>(col), true);
+            return ap[offset + static_cast<std::size_t>(row)];
+        }
+        if (row < col) {
+            return T{};
+        }
+        const std::size_t offset = packed_triangle_offset<T>(n_size, static_cast<std::size_t>(col), false);
+        return ap[offset + static_cast<std::size_t>(row - col)];
+    };
+
+    if (nota) {
+        if (upper) {
+            for (std::int64_t i = n - 1; i >= 0; --i) {
+                T sum_primary{};
+                if (sum_bins) {
+                    zero_bins(sum_bins, global_terms);
+                }
+
+                for (std::int64_t j = i + 1; j < n; ++j) {
+                    const T a_value = packed_at(i, j);
+                    if (is_zero(a_value)) {
+                        continue;
+                    }
+                    const T x_value = element_value(j);
+                    if (is_zero(x_value)) {
+                        continue;
+                    }
+                    accumulate_value(sum_primary, sum_bins, global_terms, a_value * x_value);
+                }
+
+                T dot = sum_primary;
+                if (sum_bins) {
+                    dot = finalize_value(sum_primary, sum_bins, global_terms);
+                }
+
+                T numerator = element_value(i) - dot;
+                T *target_ptr = element_ptr(i);
+                T *target_bins = element_bins(i);
+                if (!unit_diagonal) {
+                    const T diag_entry = packed_at(i, i);
+                    const T result = kdiv(numerator, diag_entry, *target_ptr, target_bins, x_terms);
+                    if (!target_bins) {
+                        *target_ptr = result;
+                    }
+                } else {
+                    if (target_bins && x_terms > 0) {
+                        zero_bins(target_bins, x_terms);
+                    }
+                    *target_ptr = numerator;
+                }
+            }
+        } else {
+            for (std::int64_t i = 0; i < n; ++i) {
+                T sum_primary{};
+                if (sum_bins) {
+                    zero_bins(sum_bins, global_terms);
+                }
+
+                for (std::int64_t j = 0; j < i; ++j) {
+                    const T a_value = packed_at(i, j);
+                    if (is_zero(a_value)) {
+                        continue;
+                    }
+                    const T x_value = element_value(j);
+                    if (is_zero(x_value)) {
+                        continue;
+                    }
+                    accumulate_value(sum_primary, sum_bins, global_terms, a_value * x_value);
+                }
+
+                T dot = sum_primary;
+                if (sum_bins) {
+                    dot = finalize_value(sum_primary, sum_bins, global_terms);
+                }
+
+                T numerator = element_value(i) - dot;
+                T *target_ptr = element_ptr(i);
+                T *target_bins = element_bins(i);
+                if (!unit_diagonal) {
+                    const T diag_entry = packed_at(i, i);
+                    const T result = kdiv(numerator, diag_entry, *target_ptr, target_bins, x_terms);
+                    if (!target_bins) {
+                        *target_ptr = result;
+                    }
+                } else {
+                    if (target_bins && x_terms > 0) {
+                        zero_bins(target_bins, x_terms);
+                    }
+                    *target_ptr = numerator;
+                }
+            }
+        }
+    } else {  // transpose
+        if (upper) {
+            for (std::int64_t i = 0; i < n; ++i) {
+                T sum_primary{};
+                if (sum_bins) {
+                    zero_bins(sum_bins, global_terms);
+                }
+
+                for (std::int64_t j = 0; j < i; ++j) {
+                    const T a_value = packed_at(j, i);
+                    if (is_zero(a_value)) {
+                        continue;
+                    }
+                    const T x_value = element_value(j);
+                    if (is_zero(x_value)) {
+                        continue;
+                    }
+                    accumulate_value(sum_primary, sum_bins, global_terms, a_value * x_value);
+                }
+
+                T dot = sum_primary;
+                if (sum_bins) {
+                    dot = finalize_value(sum_primary, sum_bins, global_terms);
+                }
+
+                T numerator = element_value(i) - dot;
+                T *target_ptr = element_ptr(i);
+                T *target_bins = element_bins(i);
+                if (!unit_diagonal) {
+                    const T diag_entry = packed_at(i, i);
+                    const T result = kdiv(numerator, diag_entry, *target_ptr, target_bins, x_terms);
+                    if (!target_bins) {
+                        *target_ptr = result;
+                    }
+                } else {
+                    if (target_bins && x_terms > 0) {
+                        zero_bins(target_bins, x_terms);
+                    }
+                    *target_ptr = numerator;
+                }
+            }
+        } else {
+            for (std::int64_t i = n - 1; i >= 0; --i) {
+                T sum_primary{};
+                if (sum_bins) {
+                    zero_bins(sum_bins, global_terms);
+                }
+
+                for (std::int64_t j = i + 1; j < n; ++j) {
+                    const T a_value = packed_at(j, i);
+                    if (is_zero(a_value)) {
+                        continue;
+                    }
+                    const T x_value = element_value(j);
+                    if (is_zero(x_value)) {
+                        continue;
+                    }
+                    accumulate_value(sum_primary, sum_bins, global_terms, a_value * x_value);
+                }
+
+                T dot = sum_primary;
+                if (sum_bins) {
+                    dot = finalize_value(sum_primary, sum_bins, global_terms);
+                }
+
+                T numerator = element_value(i) - dot;
+                T *target_ptr = element_ptr(i);
+                T *target_bins = element_bins(i);
+                if (!unit_diagonal) {
+                    const T diag_entry = packed_at(i, i);
+                    const T result = kdiv(numerator, diag_entry, *target_ptr, target_bins, x_terms);
+                    if (!target_bins) {
+                        *target_ptr = result;
+                    }
+                } else {
+                    if (target_bins && x_terms > 0) {
+                        zero_bins(target_bins, x_terms);
+                    }
+                    *target_ptr = numerator;
+                }
+            }
+        }
+    }
+}
+
+template <typename T>
+void ger_impl(const char *routine,
+              std::int64_t m,
+              std::int64_t n,
+              const T &alpha,
+              const T *x,
+              std::ptrdiff_t incx,
+              const T *y,
+              std::ptrdiff_t incy,
+              T *a,
+              std::size_t lda) {
+    std::int64_t info = 0;
+    if (m < 0) {
+        info = 1;
+    } else if (n < 0) {
+        info = 2;
+    } else if (incx == 0) {
+        info = 5;
+    } else if (incy == 0) {
+        info = 7;
+    } else if (lda < static_cast<std::size_t>(std::max<std::int64_t>(std::int64_t{1}, m))) {
+        info = 9;
+    }
+
+    if (info != 0) {
+        xerbla_(routine, &info);
+        return;
+    }
+
+    if (m == 0 || n == 0 || is_zero(alpha)) {
+        return;
+    }
+
+    const std::size_t global_terms = compensated_blas::runtime::compensation_terms();
+    std::vector<T> &local_bins = thread_local_bins<T>(global_terms);
+    T *local_bins_ptr = local_bins.empty() ? nullptr : local_bins.data();
+
+    auto x_metadata = fetch_deferred_vector(const_cast<T *>(x), incx > 0 ? incx : -incx);
+    auto y_metadata = fetch_deferred_vector(const_cast<T *>(y), incy > 0 ? incy : -incy);
+    const bool x_has_bins = x_metadata.compensation != nullptr && x_metadata.terms > 0;
+    const bool y_has_bins = y_metadata.compensation != nullptr && y_metadata.terms > 0;
+
+    const T *x_base = adjust_pointer(x, m, incx);
+    const T *y_base = adjust_pointer(y, n, incy);
+
+    auto x_value_at = [&](std::int64_t index) -> T {
+        const T *ptr = x_base + index * incx;
+        if (!x_has_bins) {
+            return *ptr;
+        }
+        if (T *bins = deferred_bins_at<T>(x_metadata, static_cast<std::size_t>(index))) {
+            return reconstruct_compensated_value(*ptr, bins, x_metadata.terms);
+        }
+        return *ptr;
+    };
+
+    auto y_value_at = [&](std::int64_t index) -> T {
+        const T *ptr = y_base + index * incy;
+        if (!y_has_bins) {
+            return *ptr;
+        }
+        if (T *bins = deferred_bins_at<T>(y_metadata, static_cast<std::size_t>(index))) {
+            return reconstruct_compensated_value(*ptr, bins, y_metadata.terms);
+        }
+        return *ptr;
+    };
+
+    deferred_matrix_metadata_t deferred = fetch_deferred_matrix(a, lda, false);
+    const bool use_deferred = deferred.compensation != nullptr && deferred.terms > 0;
+    const bool matrix_row_major = use_deferred ? deferred.row_major : false;
+    const std::size_t matrix_ld = use_deferred ? deferred.leading_dimension : lda;
+    auto *matrix_bins = use_deferred ? static_cast<T *>(deferred.compensation) : nullptr;
+
+    auto element_bins = [&](std::int64_t row, std::int64_t col) -> T * {
+        if (!use_deferred) {
+            return nullptr;
+        }
+        const std::size_t index = matrix_row_major ?
+                                      static_cast<std::size_t>(row) * matrix_ld + static_cast<std::size_t>(col) :
+                                      static_cast<std::size_t>(col) * matrix_ld + static_cast<std::size_t>(row);
+        if (index >= deferred.element_span) {
+            return nullptr;
+        }
+        return matrix_bins + index * deferred.terms;
+    };
+
+    for (std::int64_t j = 0; j < n; ++j) {
+        const T y_value = y_value_at(j);
+        if (is_zero(y_value)) {
+            continue;
+        }
+        const T scaled_y = alpha * y_value;
+        for (std::int64_t i = 0; i < m; ++i) {
+            const T x_value = x_value_at(i);
+            if (is_zero(x_value)) {
+                continue;
+            }
+            const T contribution = x_value * scaled_y;
+            T &destination = matrix_at(a, lda, false, static_cast<std::size_t>(i), static_cast<std::size_t>(j));
+            if (T *bins = element_bins(i, j)) {
+                accumulate_value(destination, bins, deferred.terms, contribution);
+                continue;
+            }
+            if (global_terms > 0 && local_bins_ptr) {
+                zero_bins(local_bins_ptr, global_terms);
+                accumulate_value(destination, local_bins_ptr, global_terms, contribution);
+                destination = finalize_value(destination, local_bins_ptr, global_terms);
+            } else {
+                destination += contribution;
+            }
+        }
+    }
+}
+
+template <typename T>
+void syr_impl(const char *routine,
+              const char *uplo,
+              std::int64_t n,
+              const T &alpha,
+              const T *x,
+              std::ptrdiff_t incx,
+              T *a,
+              std::size_t lda) {
+    const char uplo_value = uplo ? *uplo : '\0';
+    const bool upper = (uplo_value == 'U' || uplo_value == 'u');
+    const bool lower = (uplo_value == 'L' || uplo_value == 'l');
+
+    std::int64_t info = 0;
+    if (!(upper || lower)) {
+        info = 1;
+    } else if (n < 0) {
+        info = 2;
+    } else if (incx == 0) {
+        info = 5;
+    } else if (lda < static_cast<std::size_t>(std::max<std::int64_t>(std::int64_t{1}, n))) {
+        info = 7;
+    }
+
+    if (info != 0) {
+        xerbla_(routine, &info);
+        return;
+    }
+
+    if (n == 0 || is_zero(alpha)) {
+        return;
+    }
+
+    const std::size_t global_terms = compensated_blas::runtime::compensation_terms();
+    std::vector<T> &local_bins = thread_local_bins<T>(global_terms);
+    T *local_bins_ptr = local_bins.empty() ? nullptr : local_bins.data();
+
+    auto x_metadata = fetch_deferred_vector(const_cast<T *>(x), incx > 0 ? incx : -incx);
+    const bool x_has_bins = x_metadata.compensation != nullptr && x_metadata.terms > 0;
+    const T *x_base = adjust_pointer(x, n, incx);
+
+    auto x_value_at = [&](std::int64_t index) -> T {
+        const T *ptr = x_base + index * incx;
+        if (!x_has_bins) {
+            return *ptr;
+        }
+        if (T *bins = deferred_bins_at<T>(x_metadata, static_cast<std::size_t>(index))) {
+            return reconstruct_compensated_value(*ptr, bins, x_metadata.terms);
+        }
+        return *ptr;
+    };
+
+    deferred_matrix_metadata_t deferred = fetch_deferred_matrix(a, lda, false);
+    const bool use_deferred = deferred.compensation != nullptr && deferred.terms > 0;
+    const bool matrix_row_major = use_deferred ? deferred.row_major : false;
+    const std::size_t matrix_ld = use_deferred ? deferred.leading_dimension : lda;
+    auto *matrix_bins = use_deferred ? static_cast<T *>(deferred.compensation) : nullptr;
+
+    auto element_bins = [&](std::int64_t row, std::int64_t col) -> T * {
+        if (!use_deferred) {
+            return nullptr;
+        }
+        const std::size_t index = matrix_row_major ?
+                                      static_cast<std::size_t>(row) * matrix_ld + static_cast<std::size_t>(col) :
+                                      static_cast<std::size_t>(col) * matrix_ld + static_cast<std::size_t>(row);
+        if (index >= deferred.element_span) {
+            return nullptr;
+        }
+        return matrix_bins + index * deferred.terms;
+    };
+
+    for (std::int64_t j = 0; j < n; ++j) {
+        const T y_value = x_value_at(j);
+        if (is_zero(y_value)) {
+            continue;
+        }
+        const T scaled_y = alpha * y_value;
+        const std::int64_t i_begin = upper ? 0 : j;
+        const std::int64_t i_end = upper ? j : n - 1;
+        for (std::int64_t i = i_begin; i <= i_end; ++i) {
+            const T x_value = x_value_at(i);
+            if (is_zero(x_value)) {
+                continue;
+            }
+            const T contribution = x_value * scaled_y;
+            T &destination = matrix_at(a, lda, false, static_cast<std::size_t>(i), static_cast<std::size_t>(j));
+            if (T *bins = element_bins(i, j)) {
+                accumulate_value(destination, bins, deferred.terms, contribution);
+                continue;
+            }
+            if (global_terms > 0 && local_bins_ptr) {
+                zero_bins(local_bins_ptr, global_terms);
+                accumulate_value(destination, local_bins_ptr, global_terms, contribution);
+                destination = finalize_value(destination, local_bins_ptr, global_terms);
+            } else {
+                destination += contribution;
+            }
+        }
+    }
+}
+
+template <typename T>
+void spr_impl(const char *routine,
+              const char *uplo,
+              std::int64_t n,
+              const T &alpha,
+              const T *x,
+              std::ptrdiff_t incx,
+              T *ap) {
+    const char uplo_value = uplo ? *uplo : '\0';
+    const bool upper = (uplo_value == 'U' || uplo_value == 'u');
+    const bool lower = (uplo_value == 'L' || uplo_value == 'l');
+
+    std::int64_t info = 0;
+    if (!(upper || lower)) {
+        info = 1;
+    } else if (n < 0) {
+        info = 2;
+    } else if (incx == 0) {
+        info = 5;
+    }
+
+    if (info != 0) {
+        xerbla_(routine, &info);
+        return;
+    }
+
+    if (n == 0 || is_zero(alpha)) {
+        return;
+    }
+
+    const std::size_t n_size = static_cast<std::size_t>(n);
+
+    auto x_metadata = fetch_deferred_vector(const_cast<T *>(x), incx > 0 ? incx : -incx);
+    const bool x_has_bins = x_metadata.compensation != nullptr && x_metadata.terms > 0;
+    const T *x_base = adjust_pointer(x, n, incx);
+
+    auto x_value_at = [&](std::int64_t index) -> T {
+        const T *ptr = x_base + index * incx;
+        if (!x_has_bins) {
+            return *ptr;
+        }
+        if (T *bins = deferred_bins_at<T>(x_metadata, static_cast<std::size_t>(index))) {
+            return reconstruct_compensated_value(*ptr, bins, x_metadata.terms);
+        }
+        return *ptr;
+    };
+
+    auto column_offset = [&](std::int64_t index) -> std::size_t {
+        return packed_triangle_offset<T>(n_size, static_cast<std::size_t>(index), upper);
+    };
+
+    if (upper) {
+        for (std::int64_t j = 0; j < n; ++j) {
+            const T y_value = x_value_at(j);
+            if (is_zero(y_value)) {
+                continue;
+            }
+            const T scaled_y = alpha * y_value;
+            const std::size_t offset = column_offset(j);
+            for (std::int64_t i = 0; i <= j; ++i) {
+                const T x_value = x_value_at(i);
+                if (is_zero(x_value)) {
+                    continue;
+                }
+                ap[offset + static_cast<std::size_t>(i)] += x_value * scaled_y;
+            }
+        }
+    } else {
+        for (std::int64_t j = 0; j < n; ++j) {
+            const T y_value = x_value_at(j);
+            if (is_zero(y_value)) {
+                continue;
+            }
+            const T scaled_y = alpha * y_value;
+            const std::size_t offset = column_offset(j);
+            for (std::int64_t i = j; i < n; ++i) {
+                const T x_value = x_value_at(i);
+                if (is_zero(x_value)) {
+                    continue;
+                }
+                ap[offset + static_cast<std::size_t>(i - j)] += x_value * scaled_y;
+            }
+        }
+    }
+}
+
+template <typename T>
+void syr2_impl(const char *routine,
+               const char *uplo,
+               std::int64_t n,
+               const T &alpha,
+               const T *x,
+               std::ptrdiff_t incx,
+               const T *y,
+               std::ptrdiff_t incy,
+               T *a,
+               std::size_t lda) {
+    const char uplo_value = uplo ? *uplo : '\0';
+    const bool upper = (uplo_value == 'U' || uplo_value == 'u');
+    const bool lower = (uplo_value == 'L' || uplo_value == 'l');
+
+    std::int64_t info = 0;
+    if (!(upper || lower)) {
+        info = 1;
+    } else if (n < 0) {
+        info = 2;
+    } else if (incx == 0) {
+        info = 5;
+    } else if (incy == 0) {
+        info = 7;
+    } else if (lda < static_cast<std::size_t>(std::max<std::int64_t>(std::int64_t{1}, n))) {
+        info = 9;
+    }
+
+    if (info != 0) {
+        xerbla_(routine, &info);
+        return;
+    }
+
+    if (n == 0 || is_zero(alpha)) {
+        return;
+    }
+
+    const std::size_t global_terms = compensated_blas::runtime::compensation_terms();
+    std::vector<T> &local_bins = thread_local_bins<T>(global_terms);
+    T *local_bins_ptr = local_bins.empty() ? nullptr : local_bins.data();
+
+    auto x_metadata = fetch_deferred_vector(const_cast<T *>(x), incx > 0 ? incx : -incx);
+    auto y_metadata = fetch_deferred_vector(const_cast<T *>(y), incy > 0 ? incy : -incy);
+    const bool x_has_bins = x_metadata.compensation != nullptr && x_metadata.terms > 0;
+    const bool y_has_bins = y_metadata.compensation != nullptr && y_metadata.terms > 0;
+    const T *x_base = adjust_pointer(x, n, incx);
+    const T *y_base = adjust_pointer(y, n, incy);
+
+    auto vector_value_at = [&](const T *base, const deferred_vector_metadata_t &meta, bool has_bins, std::int64_t index) -> T {
+        const T *ptr = base + index * (has_bins ? meta.stride : 1) * (has_bins ? (incx > 0 ? 1 : -1) : incx);
+        if (!has_bins) {
+            return *(base + index * incx);
+        }
+        if (T *bins = deferred_bins_at<T>(meta, static_cast<std::size_t>(index))) {
+            return reconstruct_compensated_value(*(base + index * incx), bins, meta.terms);
+        }
+        return *(base + index * incx);
+    };
+
+    auto x_value_at = [&](std::int64_t index) -> T {
+        if (!x_has_bins) {
+            return *(x_base + index * incx);
+        }
+        if (T *bins = deferred_bins_at<T>(x_metadata, static_cast<std::size_t>(index))) {
+            return reconstruct_compensated_value(*(x_base + index * incx), bins, x_metadata.terms);
+        }
+        return *(x_base + index * incx);
+    };
+
+    auto y_value_at = [&](std::int64_t index) -> T {
+        if (!y_has_bins) {
+            return *(y_base + index * incy);
+        }
+        if (T *bins = deferred_bins_at<T>(y_metadata, static_cast<std::size_t>(index))) {
+            return reconstruct_compensated_value(*(y_base + index * incy), bins, y_metadata.terms);
+        }
+        return *(y_base + index * incy);
+    };
+
+    deferred_matrix_metadata_t deferred = fetch_deferred_matrix(a, lda, false);
+    const bool use_deferred = deferred.compensation != nullptr && deferred.terms > 0;
+    const bool matrix_row_major = use_deferred ? deferred.row_major : false;
+    const std::size_t matrix_ld = use_deferred ? deferred.leading_dimension : lda;
+    auto *matrix_bins = use_deferred ? static_cast<T *>(deferred.compensation) : nullptr;
+
+    auto element_bins = [&](std::int64_t row, std::int64_t col) -> T * {
+        if (!use_deferred) {
+            return nullptr;
+        }
+        const std::size_t index = matrix_row_major ?
+                                      static_cast<std::size_t>(row) * matrix_ld + static_cast<std::size_t>(col) :
+                                      static_cast<std::size_t>(col) * matrix_ld + static_cast<std::size_t>(row);
+        if (index >= deferred.element_span) {
+            return nullptr;
+        }
+        return matrix_bins + index * deferred.terms;
+    };
+
+    for (std::int64_t j = 0; j < n; ++j) {
+        const T yj = y_value_at(j);
+        const T xj = x_value_at(j);
+        if (is_zero(yj) && is_zero(xj)) {
+            continue;
+        }
+        const std::int64_t i_begin = upper ? 0 : j;
+        const std::int64_t i_end = upper ? j : n - 1;
+        for (std::int64_t i = i_begin; i <= i_end; ++i) {
+            const T yi = y_value_at(i);
+            const T xi = x_value_at(i);
+            if (is_zero(yj) && is_zero(xj) && is_zero(yi) && is_zero(xi)) {
+                continue;
+            }
+            const T contribution = alpha * (xi * yj + yi * xj);
+            if (is_zero(contribution)) {
+                continue;
+            }
+            T &destination = matrix_at(a, lda, false, static_cast<std::size_t>(i), static_cast<std::size_t>(j));
+            if (T *bins = element_bins(i, j)) {
+                accumulate_value(destination, bins, deferred.terms, contribution);
+            } else if (global_terms > 0 && local_bins_ptr) {
+                zero_bins(local_bins_ptr, global_terms);
+                accumulate_value(destination, local_bins_ptr, global_terms, contribution);
+                destination = finalize_value(destination, local_bins_ptr, global_terms);
+            } else {
+                destination += contribution;
+            }
+        }
+    }
+}
+
+template <typename T>
+void spr2_impl(const char *routine,
+               const char *uplo,
+               std::int64_t n,
+               const T &alpha,
+               const T *x,
+               std::ptrdiff_t incx,
+               const T *y,
+               std::ptrdiff_t incy,
+               T *ap) {
+    const char uplo_value = uplo ? *uplo : '\0';
+    const bool upper = (uplo_value == 'U' || uplo_value == 'u');
+    const bool lower = (uplo_value == 'L' || uplo_value == 'l');
+
+    std::int64_t info = 0;
+    if (!(upper || lower)) {
+        info = 1;
+    } else if (n < 0) {
+        info = 2;
+    } else if (incx == 0) {
+        info = 5;
+    } else if (incy == 0) {
+        info = 7;
+    }
+
+    if (info != 0) {
+        xerbla_(routine, &info);
+        return;
+    }
+
+    if (n == 0 || is_zero(alpha)) {
+        return;
+    }
+
+    const std::size_t n_size = static_cast<std::size_t>(n);
+
+    auto x_metadata = fetch_deferred_vector(const_cast<T *>(x), incx > 0 ? incx : -incx);
+    auto y_metadata = fetch_deferred_vector(const_cast<T *>(y), incy > 0 ? incy : -incy);
+    const bool x_has_bins = x_metadata.compensation != nullptr && x_metadata.terms > 0;
+    const bool y_has_bins = y_metadata.compensation != nullptr && y_metadata.terms > 0;
+
+    const T *x_base = adjust_pointer(x, n, incx);
+    const T *y_base = adjust_pointer(y, n, incy);
+
+    auto x_value_at = [&](std::int64_t index) -> T {
+        const T *ptr = x_base + index * incx;
+        if (!x_has_bins) {
+            return *ptr;
+        }
+        if (T *bins = deferred_bins_at<T>(x_metadata, static_cast<std::size_t>(index))) {
+            return reconstruct_compensated_value(*ptr, bins, x_metadata.terms);
+        }
+        return *ptr;
+    };
+
+    auto y_value_at = [&](std::int64_t index) -> T {
+        const T *ptr = y_base + index * incy;
+        if (!y_has_bins) {
+            return *ptr;
+        }
+        if (T *bins = deferred_bins_at<T>(y_metadata, static_cast<std::size_t>(index))) {
+            return reconstruct_compensated_value(*ptr, bins, y_metadata.terms);
+        }
+        return *ptr;
+    };
+
+    auto column_offset = [&](std::int64_t index) -> std::size_t {
+        return packed_triangle_offset<T>(n_size, static_cast<std::size_t>(index), upper);
+    };
+
+    if (upper) {
+        for (std::int64_t j = 0; j < n; ++j) {
+            const T yj = y_value_at(j);
+            const T xj = x_value_at(j);
+            if (is_zero(yj) && is_zero(xj)) {
+                continue;
+            }
+            const std::size_t offset = column_offset(j);
+            for (std::int64_t i = 0; i <= j; ++i) {
+                const T yi = y_value_at(i);
+                const T xi = x_value_at(i);
+                const T contribution = alpha * (xi * yj + yi * xj);
+                if (is_zero(contribution)) {
+                    continue;
+                }
+                ap[offset + static_cast<std::size_t>(i)] += contribution;
+            }
+        }
+    } else {
+        for (std::int64_t j = 0; j < n; ++j) {
+            const T yj = y_value_at(j);
+            const T xj = x_value_at(j);
+            if (is_zero(yj) && is_zero(xj)) {
+                continue;
+            }
+            const std::size_t offset = column_offset(j);
+            for (std::int64_t i = j; i < n; ++i) {
+                const T yi = y_value_at(i);
+                const T xi = x_value_at(i);
+                const T contribution = alpha * (xi * yj + yi * xj);
+                if (is_zero(contribution)) {
+                    continue;
+                }
+                ap[offset + static_cast<std::size_t>(i - j)] += contribution;
+            }
+        }
+    }
+}
+
+template <typename T>
 void trmv_impl(const char *routine,
                const char *uplo,
                const char *trans,
@@ -2409,7 +4005,9 @@ void trmv_impl(const char *routine,
 
     const char trans_value = trans ? *trans : '\0';
     const bool nota = (trans_value == 'N' || trans_value == 'n');
-    const bool transpose = (trans_value == 'T' || trans_value == 't');
+    const bool transposed = (trans_value == 'T' || trans_value == 't');
+    const bool conjugated = (trans_value == 'C' || trans_value == 'c');
+    const bool transpose = transposed || conjugated;
 
     const char diag_value = diag ? *diag : '\0';
     const bool unit_diagonal = (diag_value == 'U' || diag_value == 'u');
@@ -2460,7 +4058,11 @@ void trmv_impl(const char *routine,
         return matrix_at(a, lda, false, static_cast<std::size_t>(row), static_cast<std::size_t>(col));
     };
 
-    auto process_element = [&](std::int64_t index, auto range_begin, auto range_end, auto step) {
+    auto process_element = [&](std::int64_t index,
+                               std::int64_t range_begin,
+                               std::int64_t range_end,
+                               std::int64_t step,
+                               bool use_transpose) {
         T sum_primary{};
         T *sum_bins = local_bins.empty() ? nullptr : local_bins.data();
         if (sum_bins) {
@@ -2468,7 +4070,14 @@ void trmv_impl(const char *routine,
         }
 
         for (std::int64_t j = range_begin; j != range_end; j += step) {
-            const T a_value = mat_at(index, j);
+            const T raw_value = use_transpose ? mat_at(static_cast<std::size_t>(j), static_cast<std::size_t>(index))
+                                              : mat_at(static_cast<std::size_t>(index), static_cast<std::size_t>(j));
+            T a_value = raw_value;
+            if constexpr (scalar_traits_t<T>::is_complex) {
+                if (use_transpose && conjugated) {
+                    a_value = std::conj(raw_value);
+                }
+            }
             if (is_zero(a_value)) {
                 continue;
             }
@@ -2498,8 +4107,14 @@ void trmv_impl(const char *routine,
 
         T result = base_value;
         if (!unit_diagonal) {
-            const T diag_entry = mat_at(index, index);
-            result *= diag_entry;
+            const T diag_raw = mat_at(static_cast<std::size_t>(index), static_cast<std::size_t>(index));
+            T diag_value = diag_raw;
+            if constexpr (scalar_traits_t<T>::is_complex) {
+                if (use_transpose && conjugated) {
+                    diag_value = std::conj(diag_raw);
+                }
+            }
+            result *= diag_value;
         }
         result += sum_primary;
 
@@ -2512,21 +4127,21 @@ void trmv_impl(const char *routine,
     if (nota) {
         if (upper) {
             for (std::int64_t i = 0; i < n; ++i) {
-                process_element(i, i + 1, n, 1);
+                process_element(i, i + 1, n, 1, false);
             }
         } else {
             for (std::int64_t i = n - 1; i >= 0; --i) {
-                process_element(i, 0, i, 1);
+                process_element(i, 0, i, 1, false);
             }
         }
     } else {
         if (upper) {
-            for (std::int64_t i = 0; i < n; ++i) {
-                process_element(i, 0, i, 1);
+            for (std::int64_t i = n - 1; i >= 0; --i) {
+                process_element(i, i - 1, -1, -1, true);
             }
         } else {
-            for (std::int64_t i = n - 1; i >= 0; --i) {
-                process_element(i, i + 1, n, 1);
+            for (std::int64_t i = 0; i < n; ++i) {
+                process_element(i, i + 1, n, 1, true);
             }
         }
     }
@@ -3701,6 +5316,344 @@ void naive_blas_backend_t::dspmv(const char *uplo,
                       *beta,
                       y,
                       to_stride(incy));
+}
+
+void naive_blas_backend_t::stbmv(const char *uplo,
+                             const char *trans,
+                             const char *diag,
+                             const std::int64_t *n,
+                             const std::int64_t *k,
+                             const float *a,
+                             const std::int64_t *lda,
+                             float *x,
+                             const std::int64_t *incx) {
+    tbmv_impl<float>("STBMV ",
+                     uplo,
+                     trans,
+                     diag,
+                     *n,
+                     *k,
+                     a,
+                     static_cast<std::size_t>(*lda),
+                     x,
+                     to_stride(incx));
+}
+
+void naive_blas_backend_t::dtbmv(const char *uplo,
+                             const char *trans,
+                             const char *diag,
+                             const std::int64_t *n,
+                             const std::int64_t *k,
+                             const double *a,
+                             const std::int64_t *lda,
+                             double *x,
+                             const std::int64_t *incx) {
+    tbmv_impl<double>("DTBMV ",
+                      uplo,
+                      trans,
+                      diag,
+                      *n,
+                      *k,
+                      a,
+                      static_cast<std::size_t>(*lda),
+                      x,
+                      to_stride(incx));
+}
+
+void naive_blas_backend_t::stbsv(const char *uplo,
+                             const char *trans,
+                             const char *diag,
+                             const std::int64_t *n,
+                             const std::int64_t *k,
+                             const float *a,
+                             const std::int64_t *lda,
+                             float *x,
+                             const std::int64_t *incx) {
+    tbsv_impl<float>("STBSV ",
+                     uplo,
+                     trans,
+                     diag,
+                     *n,
+                     *k,
+                     a,
+                     static_cast<std::size_t>(*lda),
+                     x,
+                     to_stride(incx));
+}
+
+void naive_blas_backend_t::dtbsv(const char *uplo,
+                             const char *trans,
+                             const char *diag,
+                             const std::int64_t *n,
+                             const std::int64_t *k,
+                             const double *a,
+                             const std::int64_t *lda,
+                             double *x,
+                             const std::int64_t *incx) {
+    tbsv_impl<double>("DTBSV ",
+                      uplo,
+                      trans,
+                      diag,
+                      *n,
+                      *k,
+                      a,
+                      static_cast<std::size_t>(*lda),
+                      x,
+                      to_stride(incx));
+}
+
+void naive_blas_backend_t::stpmv(const char *uplo,
+                             const char *trans,
+                             const char *diag,
+                             const std::int64_t *n,
+                             const float *ap,
+                             float *x,
+                             const std::int64_t *incx) {
+    tpmv_impl<float>("STPMV ",
+                     uplo,
+                     trans,
+                     diag,
+                     *n,
+                     ap,
+                     x,
+                     to_stride(incx));
+}
+
+void naive_blas_backend_t::dtpmv(const char *uplo,
+                             const char *trans,
+                             const char *diag,
+                             const std::int64_t *n,
+                             const double *ap,
+                             double *x,
+                             const std::int64_t *incx) {
+    tpmv_impl<double>("DTPMV ",
+                      uplo,
+                      trans,
+                      diag,
+                      *n,
+                      ap,
+                      x,
+                      to_stride(incx));
+}
+
+void naive_blas_backend_t::stpsv(const char *uplo,
+                             const char *trans,
+                             const char *diag,
+                             const std::int64_t *n,
+                             const float *ap,
+                             float *x,
+                             const std::int64_t *incx) {
+    tpsv_impl<float>("STPSV ",
+                     uplo,
+                     trans,
+                     diag,
+                     *n,
+                     ap,
+                     x,
+                     to_stride(incx));
+}
+
+void naive_blas_backend_t::dtpsv(const char *uplo,
+                             const char *trans,
+                             const char *diag,
+                             const std::int64_t *n,
+                             const double *ap,
+                             double *x,
+                             const std::int64_t *incx) {
+    tpsv_impl<double>("DTPSV ",
+                      uplo,
+                      trans,
+                      diag,
+                      *n,
+                      ap,
+                      x,
+                      to_stride(incx));
+}
+
+void naive_blas_backend_t::sger(const std::int64_t *m,
+                            const std::int64_t *n,
+                            const float *alpha,
+                            const float *x,
+                            const std::int64_t *incx,
+                            const float *y,
+                            const std::int64_t *incy,
+                            float *a,
+                            const std::int64_t *lda) {
+    ger_impl<float>("SGER  ",
+                    *m,
+                    *n,
+                    *alpha,
+                    x,
+                    to_stride(incx),
+                    y,
+                    to_stride(incy),
+                    a,
+                    static_cast<std::size_t>(*lda));
+}
+
+void naive_blas_backend_t::dger(const std::int64_t *m,
+                            const std::int64_t *n,
+                            const double *alpha,
+                            const double *x,
+                            const std::int64_t *incx,
+                            const double *y,
+                            const std::int64_t *incy,
+                            double *a,
+                            const std::int64_t *lda) {
+    ger_impl<double>("DGER  ",
+                     *m,
+                     *n,
+                     *alpha,
+                     x,
+                     to_stride(incx),
+                     y,
+                     to_stride(incy),
+                     a,
+                     static_cast<std::size_t>(*lda));
+}
+
+void naive_blas_backend_t::ssyr(const char *uplo,
+                            const std::int64_t *n,
+                            const float *alpha,
+                            const float *x,
+                            const std::int64_t *incx,
+                            float *a,
+                            const std::int64_t *lda) {
+    syr_impl<float>("SSYR  ",
+                    uplo,
+                    *n,
+                    *alpha,
+                    x,
+                    to_stride(incx),
+                    a,
+                    static_cast<std::size_t>(*lda));
+}
+
+void naive_blas_backend_t::dsyr(const char *uplo,
+                            const std::int64_t *n,
+                            const double *alpha,
+                            const double *x,
+                            const std::int64_t *incx,
+                            double *a,
+                            const std::int64_t *lda) {
+    syr_impl<double>("DSYR  ",
+                     uplo,
+                     *n,
+                     *alpha,
+                     x,
+                     to_stride(incx),
+                     a,
+                     static_cast<std::size_t>(*lda));
+}
+
+void naive_blas_backend_t::sspr(const char *uplo,
+                            const std::int64_t *n,
+                            const float *alpha,
+                            const float *x,
+                            const std::int64_t *incx,
+                            float *ap) {
+    spr_impl<float>("SSPR  ",
+                    uplo,
+                    *n,
+                    *alpha,
+                    x,
+                    to_stride(incx),
+                    ap);
+}
+
+void naive_blas_backend_t::dspr(const char *uplo,
+                            const std::int64_t *n,
+                            const double *alpha,
+                            const double *x,
+                            const std::int64_t *incx,
+                            double *ap) {
+    spr_impl<double>("DSPR  ",
+                     uplo,
+                     *n,
+                     *alpha,
+                     x,
+                     to_stride(incx),
+                     ap);
+}
+
+void naive_blas_backend_t::sspr2(const char *uplo,
+                             const std::int64_t *n,
+                             const float *alpha,
+                             const float *x,
+                             const std::int64_t *incx,
+                             const float *y,
+                             const std::int64_t *incy,
+                             float *ap) {
+    spr2_impl<float>("SSPR2 ",
+                     uplo,
+                     *n,
+                     *alpha,
+                     x,
+                     to_stride(incx),
+                     y,
+                     to_stride(incy),
+                     ap);
+}
+
+void naive_blas_backend_t::dspr2(const char *uplo,
+                             const std::int64_t *n,
+                             const double *alpha,
+                             const double *x,
+                             const std::int64_t *incx,
+                             const double *y,
+                             const std::int64_t *incy,
+                             double *ap) {
+    spr2_impl<double>("DSPR2 ",
+                      uplo,
+                      *n,
+                      *alpha,
+                      x,
+                      to_stride(incx),
+                      y,
+                      to_stride(incy),
+                      ap);
+}
+
+void naive_blas_backend_t::ssyr2(const char *uplo,
+                             const std::int64_t *n,
+                             const float *alpha,
+                             const float *x,
+                             const std::int64_t *incx,
+                             const float *y,
+                             const std::int64_t *incy,
+                             float *a,
+                             const std::int64_t *lda) {
+    syr2_impl<float>("SSYR2 ",
+                     uplo,
+                     *n,
+                     *alpha,
+                     x,
+                     to_stride(incx),
+                     y,
+                     to_stride(incy),
+                     a,
+                     static_cast<std::size_t>(*lda));
+}
+
+void naive_blas_backend_t::dsyr2(const char *uplo,
+                             const std::int64_t *n,
+                             const double *alpha,
+                             const double *x,
+                             const std::int64_t *incx,
+                             const double *y,
+                             const std::int64_t *incy,
+                             double *a,
+                             const std::int64_t *lda) {
+    syr2_impl<double>("DSYR2 ",
+                      uplo,
+                      *n,
+                      *alpha,
+                      x,
+                      to_stride(incx),
+                      y,
+                      to_stride(incy),
+                      a,
+                      static_cast<std::size_t>(*lda));
 }
 
 void naive_blas_backend_t::strsv(const char *uplo,

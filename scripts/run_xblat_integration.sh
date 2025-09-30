@@ -96,6 +96,19 @@ INSTALL_DIR="${TMP_ROOT}/install"
 LOG_DIR="${TMP_ROOT}/logs"
 EXEC_ROOT="${TMP_ROOT}/exec"
 
+PYTHON_BIN=${PYTHON_BIN:-python3}
+PROCESS_XBLAT_OUTPUT="${SCRIPT_DIR}/process_xblat_output.py"
+
+if ! command -v "$PYTHON_BIN" >/dev/null 2>&1; then
+    echo "Required interpreter '$PYTHON_BIN' not found in PATH" >&2
+    exit 3
+fi
+
+if [[ ! -x "$PROCESS_XBLAT_OUTPUT" ]]; then
+    echo "Expected helper script '$PROCESS_XBLAT_OUTPUT' to be executable" >&2
+    exit 3
+fi
+
 function cleanup() {
     if [[ "$KEEP_TEMP" != true ]]; then
         rm -rf "$TMP_ROOT"
@@ -150,6 +163,9 @@ for exe in "${EXECUTABLES[@]}"; do
     base="$(basename "$exe")"
     log_file="${LOG_DIR}/${base}.log"
     run_dir="${EXEC_ROOT}/${base}"
+    raw_log_file="${run_dir}/raw.log"
+    normalized_log_file="${run_dir}/${base}.txt"
+    summary_file="${run_dir}/${base}_summary.tsv"
     mkdir -p "$run_dir"
     echo "[xBLAT] Running ${exe}" | tee "$log_file"
     if [[ -n "${LD_LIBRARY_PATH:-}" ]]; then
@@ -181,21 +197,45 @@ for exe in "${EXECUTABLES[@]}"; do
     if [[ -n "$input_file" ]]; then
         (
             cd "$run_dir"
-            "${runner[@]}" <"$input_file" >>"$log_file" 2>&1
+            "${runner[@]}" <"$input_file" >"$raw_log_file" 2>&1
         )
     else
         (
             cd "$run_dir"
-            "${runner[@]}" >>"$log_file" 2>&1
+            "${runner[@]}" >"$raw_log_file" 2>&1
         )
     fi
     status=$?
     set -e
 
+    if [[ -f "$raw_log_file" ]]; then
+        if ! "$PYTHON_BIN" "$PROCESS_XBLAT_OUTPUT" --input "$raw_log_file" --normalized "$normalized_log_file" --summary "$summary_file"; then
+            echo "[xBLAT] Warning: failed to post-process log for ${base}" | tee -a "$log_file"
+        fi
+    fi
+
+    pass_lines=()
+    fail_lines=()
+    warn_lines=()
+    if [[ -f "$summary_file" ]]; then
+        while IFS=$'\t' read -r kind message; do
+            case "$kind" in
+                PASS) pass_lines+=("$message") ;;
+                FAIL) fail_lines+=("$message") ;;
+                WARN) warn_lines+=("$message") ;;
+            esac
+        done <"$summary_file"
+    fi
+
     failure_note=""
+    if (( ${#fail_lines[@]} )); then
+        for line in "${fail_lines[@]}"; do
+            failure_note+="$line"$'\n'
+        done
+    fi
     while IFS= read -r out_file; do
-        if grep -Eiq 'FAIL|ERROR' "$out_file"; then
-            first_match="$(grep -Ei 'FAIL|ERROR' "$out_file" | head -n 1)"
+        if grep -Eiq 'FATAL[[:space:]]+ERROR|FAILED|SUSPECT' "$out_file"; then
+            first_match="$(grep -Ei 'FATAL[[:space:]]+ERROR|FAILED|SUSPECT' "$out_file" | head -n 1)"
             failure_note+="$(basename "$out_file"): ${first_match}"$'\n'
         fi
     done < <(find "$run_dir" -maxdepth 1 -type f -name '*.out' -print)
@@ -207,6 +247,10 @@ for exe in "${EXECUTABLES[@]}"; do
         fi
     fi
 
+    if (( ${#fail_lines[@]} )) && [[ $status -eq 0 ]]; then
+        status=1
+    fi
+
     if [[ -n "$failure_note" && $status -eq 0 ]]; then
         status=1
     fi
@@ -216,9 +260,33 @@ for exe in "${EXECUTABLES[@]}"; do
         TIMED_OUT+=("$base")
     elif [[ $status -eq 0 ]]; then
         echo "[xBLAT] ${base} -> PASS" | tee -a "$log_file"
+        if (( ${#pass_lines[@]} )); then
+            {
+                echo "[xBLAT] ${base} pass highlights:"
+                for line in "${pass_lines[@]}"; do
+                    echo "    $line"
+                done
+            } | tee -a "$log_file"
+        fi
+        if (( ${#warn_lines[@]} )); then
+            {
+                echo "[xBLAT] ${base} warnings:"
+                for line in "${warn_lines[@]}"; do
+                    echo "    $line"
+                done
+            } | tee -a "$log_file"
+        fi
         PASSED+=("$base")
     else
         echo "[xBLAT] ${base} -> FAIL (exit ${status})" | tee -a "$log_file"
+        if (( ${#fail_lines[@]} )); then
+            {
+                echo "[xBLAT] ${base} failing checks:"
+                for line in "${fail_lines[@]}"; do
+                    echo "    $line"
+                done
+            } | tee -a "$log_file"
+        fi
         if [[ -n "$failure_note" ]]; then
             printf '%s' "$failure_note" | tee -a "$log_file"
         fi
@@ -227,6 +295,9 @@ for exe in "${EXECUTABLES[@]}"; do
     echo >>"$log_file"
     echo
     echo "  log: $log_file"
+    echo "  raw log: $raw_log_file"
+    echo "  text log: $normalized_log_file"
+    echo "  summary: $summary_file"
     echo
     done
 

@@ -98,13 +98,13 @@ allowing ergonomic C++ implementations and backend selection at runtime.
 
 # References 
 
-Extended / Mixed-Precision BLAS (XBLAS)
+* Extended / Mixed-Precision BLAS (XBLAS)
 
 Li, X. S., Demmel, J., Bailey, D., Henry, G., Hida, Y., Iskandar, J., Kahan, W., et al. “Design, Implementation and Testing of Extended and Mixed Precision BLAS.” ACM Transactions on Mathematical Software 28(2), 2002. DOI: 10.1145/567806.567808.
 PDF: https://portal.nersc.gov/project/sparse/xiaoye-web/p152-s_li.pdf
 ACM page: https://dl.acm.org/doi/10.1145/567806.567808
 
-Reproducible BLAS (binned accumulators / ReproBLAS)
+* Reproducible BLAS (binned accumulators / ReproBLAS)
 
 Ahrens, P., Demmel, J., Nguyen, H. D., Riedy, E. “Efficient Reproducible Floating Point Summation and BLAS.” UCB/EECS-2015-229, 2015.
 PDF: https://www2.eecs.berkeley.edu/Pubs/TechRpts/2015/EECS-2015-229.pdf
@@ -113,7 +113,7 @@ Ahrens, P., Demmel, J., Nguyen, H. D. “Algorithms for Efficient Reproducible F
 PDF: https://people.eecs.berkeley.edu/~demmel/ma221_Fall23/J115_Efficient_Reproducible_Summation_TOMS_2020.pdf
 ACM page: https://dl.acm.org/doi/10.1145/3389360
 
-ExBLAS (superaccumulators + EFT; correct rounding & reproducibility)
+* ExBLAS (superaccumulators + EFT; correct rounding & reproducibility)
 
 Iakymchuk, R., Collange, S., Defour, D., Graillat, S. “ExBLAS: Reproducible and Accurate BLAS Library.” Poster/overview, 2015.
 Poster: https://www-pequan.lip6.fr/~graillat/papers/poster.raim2015.pdf
@@ -121,7 +121,7 @@ Poster: https://www-pequan.lip6.fr/~graillat/papers/poster.raim2015.pdf
 Iakymchuk, R. “ExBLAS: Reproducible and Accurate BLAS Library.” NIST talk slides, 2015.
 Slides: https://www.nist.gov/document/nre-2015-04-iakymchukpdf
 
-Ozaki scheme (tunable up to correct rounding; built atop vendor BLAS)
+* Ozaki scheme (tunable up to correct rounding; built atop vendor BLAS)
 
 Mukunoki, D., Ogita, T., Ozaki, K. “High-Performance Implementation of Reproducible and Accurate Matrix Multiplication on GPUs.” PMAA 2018 (slides/paper).
 PDF: https://www-pequan.lip6.fr/~graillat/papers/pmaa18mukunoki.pdf
@@ -141,7 +141,7 @@ PDF summary: https://grouper.ieee.org/groups/msc/ANSI_IEEE-Std-754-2019/backgrou
 Demmel, J. “A New IEEE 754 Standard for Floating-Point Arithmetic in an Ever-Changing World.” SIAM News, 2021.
 Article: https://www.siam.org/publications/siam-news/articles/a-new-ieee-754-standard-for-floating-point-arithmetic-in-an-ever-changing-world/
 
-Exact dot product / long accumulators (theory & hardware motivation)
+* Exact dot product / long accumulators (theory & hardware motivation)
 
 Kulisch, U., Snyder, V. “The Exact Dot Product as Basic Tool for Long Interval Arithmetic.” Computing 91, 307–313 (2011). DOI: 10.1007/s00607-010-0127-7.
 Springer page: https://link.springer.com/article/10.1007/s00607-010-0127-7
@@ -150,7 +150,7 @@ Open PDF mirror: https://scispace.com/pdf/the-exact-dot-product-as-basic-tool-fo
 Kulisch, U. “Very Fast and Exact Accumulation of Products.” Computing 91, 2011. DOI: 10.1007/s00607-010-0131-y.
 Springer page: https://link.springer.com/article/10.1007/s00607-010-0131-y
 
-Accurate/faithful summation foundations (NearSum etc.)
+* Accurate/faithful summation foundations (NearSum etc.)
 
 Rump, S. M. “Accurate Floating-Point Summation Part I: Faithful Rounding.” SIAM J. Sci. Comput., 2006. DOI: 10.1137/050645671.
 DOI page: https://epubs.siam.org/doi/10.1137/050645671

@@ -39,9 +39,14 @@ I wanted to experiment with other things too. I will probably return to this and
 3. `xSYRK` supported in level 3 blas for real,complex,32/64bit
 
 
+## A note about non-unit triangular solves
 
-
-
+My first attempt at putting triangular solves into a compensated arithmetic framework involves a clumsy
+Newton-Raphson refinement of division into `k` terms which then get folded into the subsequent accumulations.
+In retrospect I don't think this is ideal it involves a significant amount of code and so my thought now is that
+it would be better to block up the triangular solve into small blocks (like you would do for cache tiling),
+and each block does a number of iterative refinements where the residual is calculated with compensated
+arithmetic (e.g. compensated GEMV/GEMM) but deferred rounding. 
 
 # xBLAT Integration Harness
 

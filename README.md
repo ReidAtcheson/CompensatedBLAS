@@ -9,7 +9,8 @@ This code is largely written by [codex](https://openai.com/codex/) where the pri
 of compensated arithmetic. The idea of compensated arithmetic is not novel in the context of BLAS having been
 explored extensively in the literature (see references below). Furthermore I have expended _zero effort_ to
 optimize these routines. They likely are _many times_ slower than associated optimized routines certainly
-from vendor libraries like MKL, but also probably slower than available compensated BLAS libraries.
+from vendor libraries like MKL, but also probably slower than available compensated BLAS libraries 
+(although see `features` section below for a description of how this differs from such existing libraries).
 
 All of the above is to say: this is probably not fit for any real practical purpose in its current state. it is an experimental project
 whose primary purpose was to satisfy my own curiosity.

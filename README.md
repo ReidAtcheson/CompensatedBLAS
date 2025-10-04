@@ -2,7 +2,47 @@
 BLAS implemented using tunable length compensation terms and optional deferred rounding
 
 
-## xBLAT Integration Harness
+
+# Disclaimer
+
+This code is largely written by [codex](https://openai.com/codex/) where the primary input from me was the addition
+of compensated arithmetic. The idea of compensated arithmetic is not novel in the context of BLAS having been
+explored extensively in the literature (see references below). Furthermore I have expended _zero effort_ to
+optimize these routines. They likely are _many times_ slower than associated optimized routines certainly
+from vendor libraries like MKL, but also probably slower than available compensated BLAS libraries.
+
+All of the above is to say: this is probably not fit for any real practical purpose in its current state. it is an experimental project
+whose primary purpose was to satisfy my own curiosity.
+
+# Features 
+
+So why did I do this? I thought it would be nice to have a compensated blas library
+that is fully binary compatible with ordinary BLAS, enabled tunable compensated accumulators,
+and also enabled a sidecar where we could defer rounding across BLAS calls for those routines
+which  can be called to accumulate repeatedly into the same output matrix.
+
+So to summarize:
+
+1. Fully binary compatible with blas (you can LD_PRELOAD this library into a project that links blas, and it will work).
+2. Optional deferred rounding for routines that accumulate into an output matrix. e.g. GEMM,SYRK,axpy, etc..
+
+
+# Current BLAS support
+
+Codex has made steady and consistent progress and I only halted it because it was burning my token budget and
+I wanted to experiment with other things too. I will probably return to this and complete the naive implementation.
+
+
+1. All level 1 blas supported for real,complex,32/64bit
+2. All level 2 blas supported for real 32/64bitA
+3. `xSYRK` supported in level 3 blas for real,complex,32/64bit
+
+
+
+
+
+
+# xBLAT Integration Harness
 
 The helper script `scripts/run_xblat_integration.sh` automates a clean configure
 and install to a temporary prefix before running the `libblas-test` Fortran
@@ -17,7 +57,7 @@ Use `--keep-temp` to inspect the staged install and per-test logs, or
 `--search-dir` to point at alternative BLAS test directories.
 
 
-## Adding a Backend
+# Adding a Backend
 
 Backends are modeled as C++ subclasses of `compensated_blas::impl::BlasBackend`. Each
 BLAS routine is a pure virtual method; the default implementation shipped with

@@ -200,7 +200,6 @@ void flush_vector_if_deferred(double *data, std::size_t length) {
 struct solver_log_entry_t {
     std::size_t iteration = 0;
     double residual_norm = 0.0;
-    double orthogonality = 0.0;
 };
 
 struct solver_result_t {
@@ -255,16 +254,10 @@ solver_result_t solve_conjugate_residual(const solver_config_t &config,
     copy_backend(r, p);
     apply_laplacian(p, ap, grid);
 
-    std::vector<double> r0 = r;
-    flush_vector_if_deferred(r0.data(), r0.size());
-
     double rho = dot_backend(r, r);
-    const double r0_norm = std::sqrt(rho);
 
     solver_result_t result{};
     result.log_entries.reserve(config.max_iterations / config.log_interval + 1);
-
-    const std::int64_t one = 1;
 
     for (std::size_t iteration = 0; iteration < config.max_iterations; ++iteration) {
         const double sigma = dot_backend(ap, ap);
@@ -293,9 +286,7 @@ solver_result_t solve_conjugate_residual(const solver_config_t &config,
         flush_vector_if_deferred(r.data(), r.size());
 
         if (iteration % config.log_interval == 0 || iteration + 1 == config.max_iterations) {
-            const double dot_r_r0 = dot_backend(r, r0);
-            const double orthogonality = std::abs(dot_r_r0) / (r0_norm * residual_norm);
-            result.log_entries.push_back({iteration, residual_norm, orthogonality});
+            result.log_entries.push_back({iteration, residual_norm});
         }
 
         if (residual_norm < config.tolerance) {
@@ -327,11 +318,10 @@ solver_result_t solve_conjugate_residual(const solver_config_t &config,
     out << (enable_compensation ? "[compensated]" : "[plain]")
         << " iterations=" << result.iterations
         << " final_residual=" << result.final_residual_norm << '\n';
-    out << "    orthogonality to r0:" << '\n';
+    out << "    residual norms:" << '\n';
     for (const auto &entry : result.log_entries) {
         out << "      iter=" << std::setw(6) << entry.iteration
-            << " residual=" << std::setw(14) << entry.residual_norm
-            << " orthogonality=" << entry.orthogonality << '\n';
+            << " residual=" << std::setw(14) << entry.residual_norm << '\n';
     }
 
     return result;
